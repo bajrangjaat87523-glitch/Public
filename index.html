@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<title>VT Dairy Farm</title>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f7f5;color:#222}
+header{background:#087a45;color:white;padding:22px 15px;text-align:center}
+header h1{margin:0;font-size:28px}
+header p{margin:7px 0 0}
+.container{width:94%;max-width:650px;margin:20px auto}
+.card{background:white;padding:20px;margin-bottom:16px;border-radius:14px;box-shadow:0 2px 9px rgba(0,0,0,.08)}
+.card h2{margin-top:0}
+button{width:100%;border:0;background:#087a45;color:white;padding:14px;border-radius:9px;font-size:16px;font-weight:bold;margin-top:9px;cursor:pointer}
+.order-btn{background:#2878c8}
+.back{background:#555}
+.notice{background:#fff8d9;border-left:5px solid #e0ad00;padding:14px;border-radius:9px;line-height:1.6;margin-bottom:16px}
+.open{background:#e7f7ed;border-left:5px solid #168a45;padding:14px;border-radius:8px;margin-bottom:15px;color:#126b35;font-weight:bold;line-height:1.7}
+.closed{background:#ffe5e5;border-left:5px solid #d9534f;padding:14px;border-radius:8px;margin-bottom:15px;color:#a33;font-weight:bold;line-height:1.7}
+.firebase-status{background:#e8f1ff;color:#24518a;border-left:5px solid #2878c8;padding:12px;border-radius:9px;margin-bottom:15px;line-height:1.6;font-size:14px}
+label{display:block;margin-top:8px;font-weight:bold}
+input{width:100%;padding:12px;margin:6px 0 10px;border:1px solid #ccc;border-radius:8px;font-size:15px}
+.product{border:1px solid #ddd;border-radius:10px;padding:13px;margin-bottom:10px}
+.product-name{font-size:18px;font-weight:bold}
+.price{color:#168a45;font-weight:bold;margin:6px 0}
+.qty-row{display:flex;align-items:center;gap:10px}
+.qty-row input{margin:0}
+.success{display:none;background:#e7f7ed;color:#126b35;border-left:5px solid #168a45;padding:15px;border-radius:10px;margin-bottom:15px;line-height:1.7}
+.error{display:none;background:#ffe5e5;color:#a33;padding:14px;border-radius:9px;margin-bottom:15px;font-weight:bold}
+#orderPage,#myOrdersPage{display:none}
+.order{border:1px solid #ddd;border-radius:12px;padding:15px;margin-top:12px}
+.order-id{background:#f4f7f5;padding:10px;border-radius:8px;word-break:break-all;margin-bottom:10px;font-weight:bold}
+.info{color:#555;line-height:1.8}
+.item{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #eee}
+.items{margin-top:10px;border-top:1px solid #eee}
+.total{text-align:right;color:#087a45;font-size:19px;font-weight:bold;margin-top:10px}
+.status{display:block;text-align:center;padding:10px;border-radius:9px;margin-top:12px;font-weight:bold}
+.pending{background:#fff3cd;color:#856404}
+.confirmed{background:#dbeafe;color:#1d4ed8}
+.delivered{background:#e7f7ed;color:#126b35}
+.cancelled{background:#ffe5e5;color:#a33}
+.empty{text-align:center;color:#777;padding:18px 10px}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>🥛 VT Dairy Farm</h1>
+<p>ताजा दूध और Dairy Products</p>
+</header>
+
+<div id="homePage">
+<div class="container">
+
+<div class="notice">
+<b>🕐 Order Timing</b><br>
+सुबह: 7:00 बजे से 10:00 बजे तक<br>
+शाम: 6:00 बजे से 9:00 बजे तक
+</div>
+
+<div id="firebaseStatus" class="firebase-status">
+🔄 Firebase Database से कनेक्शन तैयार हो रहा है...
+</div>
+
+<div class="card">
+
+<h2>🥛 VT Dairy Farm</h2>
+
+<p>
+ताजा दूध और Dairy Products के लिए आपका स्वागत है।
+</p>
+
+<button class="order-btn" onclick="openOrder()">
+📦 Customer Order करें
+</button>
+
+<button class="order-btn" onclick="openMyOrders()">
+📋 मेरे Orders देखें
+</button>
+
+</div>
+</div>
+</div>
+
+<div id="orderPage">
+<div class="container">
+
+<div id="timingBox"></div>
+<div id="successBox" class="success"></div>
+<div id="orderError" class="error"></div>
+
+<div class="card">
+
+<h2>👤 Customer Details</h2>
+
+<label>नाम</label>
+<input type="text" id="customerName" placeholder="अपना नाम लिखें">
+
+<label>मोबाइल नंबर</label>
+<input type="tel" id="phone" placeholder="मोबाइल नंबर लिखें" maxlength="10">
+
+<label>Address</label>
+<input type="text" id="address" placeholder="अपना पूरा पता लिखें">
+
+</div>
+
+<div class="card">
+
+<h2>🥛 Product चुनें</h2>
+
+<div id="products">
+<div class="empty">🔄 Products लोड हो रहे हैं...</div>
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>🛒 आपका Order</h2>
+
+<div id="cart">
+<div class="empty">अभी कोई Product नहीं चुना है।</div>
+</div>
+
+<div class="total">
+कुल: ₹<span id="total">0</span>
+</div>
+
+<button onclick="placeOrder()">
+📦 Order करें
+</button>
+
+<button class="back" onclick="showHome()">
+⬅️ वापस जाएँ
+</button>
+
+</div>
+</div>
+</div>
+
+<div id="myOrdersPage">
+<div class="container">
+
+<div class="card">
+
+<h2>📋 मेरे Orders</h2>
+
+<p>अपने Orders देखने के लिए मोबाइल नंबर डालें।</p>
+
+<input type="tel" id="searchPhone" placeholder="मोबाइल नंबर लिखें" maxlength="10">
+
+<button onclick="findMyOrders()">
+🔎 मेरे Orders देखें
+</button>
+
+</div>
+
+<div id="ordersError" class="error"></div>
+
+<div id="myOrdersResult" class="card" style="display:none;">
+
+<h2>📦 आपके Orders</h2>
+
+<div id="myOrdersList"></div>
+
+</div>
+
+<button class="back" onclick="showHome()">
+⬅️ Home पर वापस जाएँ
+</button>
+
+</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+
+const firebaseConfig={
+apiKey:"AIzaSyD9cwaW54d5VRfK6rbuqSExcz27bFHdSm8",
+authDomain:"vt-dairy-farm-9afc8.firebaseapp.com",
+projectId:"vt-dairy-farm-9afc8",
+storageBucket:"vt-dairy-farm-9afc8.firebasestorage.app",
+messagingSenderId:"86012601125",
+appId:"1:86012601125:web:6a6d81f5d93aae16a030cc"
+};
+
+let db=null;
+let firebaseReady=false;
+
+try{
+firebase.initializeApp(firebaseConfig);
+db=firebase.firestore();
+firebaseReady=true;
+}catch(error){
+console.error("Firebase Error:",error);
+firebaseReady=false;
+}
+
+const defaultProducts=[
+{
+id:"milk",
+name:"दूध",
+price:80,
+unit:"लीटर",
+active:true
+},
+{
+id:"ghee",
+name:"घी",
+price:0,
+unit:"किलो",
+active:false
+},
+{
+id:"paneer",
+name:"पनीर",
+price:0,
+unit:"किलो",
+active:false
+},
+{
+id:"mawa",
+name:"मावा",
+price:0,
+unit:"किलो",
+active:false
+}
+];
+
+let cart={};
+
+function normalizePhone(phone){
+return String(phone||"").replace(/\D/g,"");
+}
+
+function escapeHTML(value){
+return String(value??"")
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
+}
+
+function saveLocalProducts(products){
+localStorage.setItem(
+"vtDairyProducts",
+JSON.stringify(products)
+);
+}
+
+function getLocalProducts(){
+
+try{
+
+const saved=
+JSON.parse(
+localStorage.getItem("vtDairyProducts")
+);
+
+if(Array.isArray(saved)&&saved.length){
+return saved;
+}
+
+}catch(error){}
+
+saveLocalProducts(defaultProducts);
+
+return defaultProducts;
+
+}
+
+async function getProductsFromFirebase(){
+
+if(!firebaseReady||!db){
+return [];
+}
+
+try{
+
+const snapshot=
+await db.collection("products").get();
+
+const products=[];
+
+snapshot.forEach(function(doc){
+
+const data=doc.data();
+
+if(data){
+
+products.push({
+id:data.id||doc.id,
+name:data.name||"",
+price:Number(data.price||0),
+unit:data.unit||"",
+active:data.active===true
+});
+
+}
+
+});
+
+return products;
+
+}catch(error){
+
+console.error("Firebase Products Error:",error);
+
+return [];
+
+}
+
+}
+
+async function getProducts(){
+
+if(firebaseReady){
+
+const onlineProducts=
+await getProductsFromFirebase();
+
+if(onlineProducts.length>0){
+
+saveLocalProducts(onlineProducts);
+
+return onlineProducts;
+
+}
+
+}
+
+return getLocalProducts();
+
+}
+
+function updateFirebaseStatus(){
+
+const box=
+document.getElementById("firebaseStatus");
+
+if(!box)return;
+
+if(firebaseReady){
+
+box.innerHTML=
+"🟢 Firebase Database जुड़ा हुआ है।<br>"+
+"Products और Rates ऑनलाइन Firebase से लिए जाएंगे।";
+
+}else{
+
+box.innerHTML=
+"🟠 Firebase उपलब्ध नहीं है।<br>"+
+"पुराने फोन में सेव Products उपयोग होंगे।";
+
+}
+
+}
+
+function hideAllPages(){
+
+document.getElementById("homePage").style.display="none";
+document.getElementById("orderPage").style.display="none";
+document.getElementById("myOrdersPage").style.display="none";
+
+}
+
+function showHome(){
+
+hideAllPages();
+
+document.getElementById("homePage").style.display="block";
+
+window.scrollTo(0,0);
+
+}
+
+async function openOrder(){
+
+hideAllPages();
+
+document.getElementById("orderPage").style.display="block";
+
+await renderProducts();
+
+updateTiming();
+
+window.scrollTo(0,0);
+
+}
+
+function openMyOrders(){
+
+hideAllPages();
+
+document.getElementById("myOrdersPage").style.display="block";
+
+document.getElementById("ordersError").style.display="none";
+document.getElementById("myOrdersResult").style.display="none";
+
+window.scrollTo(0,0);
+
+}
+
+function isOrderTime(){
+
+const now=new Date();
+
+const current=
+now.getHours()*60+
+now.getMinutes();
+
+const morningStart=7*60;
+const morningEnd=10*60;
+
+const eveningStart=18*60;
+const eveningEnd=21*60;
+
+return(
+(current>=morningStart&&current<=morningEnd)||
+(current>=eveningStart&&current<=eveningEnd)
+);
+
+}
+
+function updateTiming(){
+
+const box=
+document.getElementById("timingBox");
+
+if(!box)return;
+
+if(isOrderTime()){
+
+box.className="open";
+
+box.innerHTML=
+"🟢 अभी Order चालू है।<br>"+
+"आप अपना Order कर सकते हैं।";
+
+}else{
+
+box.className="closed";
+
+box.innerHTML=
+"🔴 अभी Order बंद है।<br>"+
+"Order सुबह 7–10 बजे और शाम 6–9 बजे किया जा सकता है।";
+
+}
+
+}
+
+async function renderProducts(){
+
+const box=
+document.getElementById("products");
+
+box.innerHTML=
+'<div class="empty">🔄 Firebase से Products लोड हो रहे हैं...</div>';
+
+const products=
+await getProducts();
+
+box.innerHTML="";
+
+const activeProducts=
+products.filter(function(product){
+
+return(
+product.active===true &&
+Number(product.price)>=0
+);
+
+});
+
+if(!activeProducts.length){
+
+box.innerHTML=
+'<div class="empty">अभी कोई Product उपलब्ध नहीं है।</div>';
+
+return;
+
+}
+
+activeProducts.forEach(function(product){
+
+const div=
+document.createElement("div");
+
+div.className="product";
+
+div.innerHTML=`
+
+<div class="product-name">
+${escapeHTML(product.name)}
+</div>
+
+<div class="price">
+₹${Number(product.price||0)} / ${escapeHTML(product.unit)}
+</div>
+
+<div class="qty-row">
+
+<label style="margin:0;flex:1;">
+मात्रा
+</label>
+
+<input
+type="number"
+min="0"
+step="0.5"
+value="${cart[product.id]?cart[product.id].qty:0}"
+onchange="setQuantity('${escapeHTML(product.id)}',this.value)"
+>
+
+</div>
+
+`;
+
+box.appendChild(div);
+
+});
+
+updateCart();
+
+}
+
+async function setQuantity(productId,value){
+
+const qty=Number(value);
+
+if(!qty||qty<=0){
+
+delete cart[productId];
+
+}else{
+
+const products=
+await getProducts();
+
+const product=
+products.find(function(p){
+
+return p.id===productId;
+
+});
+
+if(product){
+
+cart[productId]={
+id:product.id,
+name:product.name,
+price:Number(product.price||0),
+unit:product.unit,
+qty:qty
+};
+
+}
+
+}
+
+updateCart();
+
+}
+
+function updateCart(){
+
+const box=
+document.getElementById("cart");
+
+const totalBox=
+document.getElementById("total");
+
+const items=
+Object.values(cart);
+
+if(!items.length){
+
+box.innerHTML=
+'<div class="empty">अभी कोई Product नहीं चुना है।</div>';
+
+totalBox.textContent="0";
+
+return;
+
+}
+
+let total=0;
+
+box.innerHTML="";
+
+items.forEach(function(item){
+
+const amount=
+item.price*item.qty;
+
+total+=amount;
+
+const div=
+document.createElement("div");
+
+div.className="item";
+
+div.innerHTML=`
+
+<span>
+${escapeHTML(item.name)}
+× ${item.qty} ${escapeHTML(item.unit)}
+</span>
+
+<b>₹${amount.toFixed(2)}</b>
+
+`;
+
+box.appendChild(div);
+
+});
+
+totalBox.textContent=
+total.toFixed(2);
+
+}
+
+function makeOrderId(){
+
+return"VT"+
+Date.now().toString(36).toUpperCase()+
+Math.random()
+.toString(36)
+.substring(2,7)
+.toUpperCase();
+
+}
+
+function saveLocalOrder(order){
+
+const orders=
+getLocalOrders();
+
+orders.push(order);
+
+localStorage.setItem(
+"vtDairyOrders",
+JSON.stringify(orders)
+);
+
+}
+
+async function saveOrderToFirebase(order){
+
+if(!firebaseReady||!db){
+return false;
+}
+
+try{
+
+await db
+.collection("orders")
+.doc(order.id)
+.set(order);
+
+return true;
+
+}catch(error){
+
+console.error("Firebase Order Error:",error);
+
+return false;
+
+}
+
+}
+
+function getLocalOrders(){
+
+try{
+
+const saved=
+JSON.parse(
+localStorage.getItem("vtDairyOrders")
+);
+
+if(Array.isArray(saved)){
+return saved;
+}
+
+}catch(error){}
+
+return[];
+
+}
+
+async function placeOrder(){
+
+const errorBox=
+document.getElementById("orderError");
+
+const successBox=
+document.getElementById("successBox");
+
+errorBox.style.display="none";
+successBox.style.display="none";
+
+if(!isOrderTime()){
+
+errorBox.textContent=
+"🔴 अभी Order बंद है। Order सुबह 7–10 बजे और शाम 6–9 बजे किया जा सकता है।";
+
+errorBox.style.display="block";
+
+return;
+
+}
+
+const name=
+document.getElementById("customerName")
+.value.trim();
+
+const phone=
+normalizePhone(
+document.getElementById("phone").value
+);
+
+const address=
+document.getElementById("address")
+.value.trim();
+
+if(!name){
+
+errorBox.textContent="कृपया अपना नाम लिखें।";
+errorBox.style.display="block";
+return;
+
+}
+
+if(phone.length!==10){
+
+errorBox.textContent=
+"कृपया सही 10 अंकों का मोबाइल नंबर लिखें।";
+
+errorBox.style.display="block";
+return;
+
+}
+
+if(!address){
+
+errorBox.textContent=
+"कृपया अपना Address लिखें।";
+
+errorBox.style.display="block";
+return;
+
+}
+
+const items=
+Object.values(cart);
+
+if(!items.length){
+
+errorBox.textContent=
+"कृपया कम से कम एक Product चुनें।";
+
+errorBox.style.display="block";
+return;
+
+}
+
+let total=0;
+
+items.forEach(function(item){
+
+total+=item.price*item.qty;
+
+});
+
+const order={
+
+id:makeOrderId(),
+name:name,
+phone:phone,
+address:address,
+items:items,
+total:Number(total.toFixed(2)),
+status:"Pending",
+createdAt:new Date().toISOString()
+
+};
+
+saveLocalOrder(order);
+
+const firebaseSaved=
+await saveOrderToFirebase(order);
+
+successBox.innerHTML=
+"✅ आपका Order सफलतापूर्वक दर्ज हो गया।<br><br>"+
+"<b>Order ID:</b> "+
+escapeHTML(order.id)+
+"<br>"+
+"<b>कुल राशि:</b> ₹"+
+order.total+
+"<br><br>"+
+(
+firebaseSaved
+?
+"🟢 Order ऑनलाइन Firestore में भी सेव हो गया है।"
+:
+"🟠 Order इस फोन में सेव है।"
+);
+
+successBox.style.display="block";
+
+cart={};
+
+document.getElementById("customerName").value="";
+document.getElementById("phone").value="";
+document.getElementById("address").value="";
+
+await renderProducts();
+
+updateCart();
+
+window.scrollTo(0,0);
+
+}
+
+async function getOrdersFromFirebase(phone){
+
+if(!firebaseReady||!db){
+return[];
+}
+
+try{
+
+const searchPhone=
+normalizePhone(phone);
+
+const snapshot=
+await db
+.collection("orders")
+.where("phone","==",searchPhone)
+.get();
+
+const orders=[];
+
+snapshot.forEach(function(doc){
+
+orders.push(doc.data());
+
+});
+
+orders.sort(function(a,b){
+
+return String(b.createdAt||"")
+.localeCompare(
+String(a.createdAt||"")
+);
+
+});
+
+return orders;
+
+}catch(error){
+
+console.error(
+"Firebase Orders Error:",
+error
+);
+
+return[];
+
+}
+
+}
+
+async function findMyOrders(){
+
+const errorBox=
+document.getElementById("ordersError");
+
+const resultBox=
+document.getElementById("myOrdersResult");
+
+const list=
+document.getElementById("myOrdersList");
+
+errorBox.style.display="none";
+resultBox.style.display="none";
+
+const phone=
+normalizePhone(
+document.getElementById("searchPhone").value
+);
+
+if(phone.length!==10){
+
+errorBox.textContent=
+"कृपया सही 10 अंकों का मोबाइल नंबर लिखें।";
+
+errorBox.style.display="block";
+return;
+
+}
+
+let orders=[];
+
+if(firebaseReady){
+
+orders=
+await getOrdersFromFirebase(phone);
+
+}
+
+if(!orders.length){
+
+orders=
+getLocalOrders().filter(function(order){
+
+return normalizePhone(order.phone)===phone;
+
+});
+
+}
+
+if(!orders.length){
+
+errorBox.textContent=
+"इस मोबाइल नंबर से कोई Order नहीं मिला।";
+
+errorBox.style.display="block";
+return;
+
+}
+
+list.innerHTML="";
+
+orders.forEach(function(order){
+
+const div=
+document.createElement("div");
+
+div.className="order";
+
+let itemsHTML="";
+
+(order.items||[]).forEach(function(item){
+
+const qty=
+item.qty??
+item.quantity??
+1;
+
+const amount=
+Number(item.price||0)*
+Number(qty||0);
+
+itemsHTML+=`
+
+<div class="item">
+
+<span>
+${escapeHTML(item.name)}
+× ${qty} ${escapeHTML(item.unit)}
+</span>
+
+<b>₹${amount.toFixed(2)}</b>
+
+</div>
+
+`;
+
+});
+
+let statusClass="pending";
+
+if(order.status==="Confirmed"){
+statusClass="confirmed";
+}
+
+if(order.status==="Delivered"){
+statusClass="delivered";
+}
+
+if(order.status==="Cancelled"){
+statusClass="cancelled";
+}
+
+const dateText=
+order.createdAt
+?
+new Date(order.createdAt).toLocaleString("hi-IN")
+:
+"";
+
+div.innerHTML=`
+
+<div class="order-id">
+Order ID: ${escapeHTML(order.id)}
+</div>
+
+<div class="info">
+
+<b>नाम:</b>
+${escapeHTML(order.name)}
+
+<br>
+
+<b>मोबाइल:</b>
+${escapeHTML(order.phone)}
+
+<br>
+
+<b>Address:</b>
+${escapeHTML(order.address)}
+
+<br>
+
+<b>Order Time:</b>
+${escapeHTML(dateText)}
+
+</div>
+
+<div class="items">
+${itemsHTML}
+</div>
+
+<div class="total">
+कुल: ₹${Number(order.total||0).toFixed(2)}
+</div>
+
+<div class="status ${statusClass}">
+${escapeHTML(order.status||"Pending")}
+</div>
+
+`;
+
+list.appendChild(div);
+
+});
+
+resultBox.style.display="block";
+
+window.scrollTo(0,0);
+
+}
+
+updateFirebaseStatus();
+showHome();
+
+</script>
+
+</body>
+</html>

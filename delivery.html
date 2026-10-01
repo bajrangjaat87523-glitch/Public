@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>VT Dairy Farm - Delivery</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  font-family:Arial,sans-serif;
+}
+
+body{
+  background:#f4f7f5;
+  color:#222;
+  padding-bottom:30px;
+}
+
+header{
+  background:#087a45;
+  color:#fff;
+  padding:22px 15px;
+  text-align:center;
+}
+
+header h1{
+  font-size:25px;
+}
+
+header p{
+  margin-top:6px;
+}
+
+.container{
+  width:94%;
+  max-width:650px;
+  margin:18px auto;
+}
+
+.card{
+  background:#fff;
+  border-radius:14px;
+  padding:17px;
+  margin-bottom:15px;
+  box-shadow:0 2px 8px #0001;
+}
+
+.login-card{
+  margin-top:35px;
+}
+
+.login-title{
+  text-align:center;
+  color:#087a45;
+  margin-bottom:20px;
+}
+
+label{
+  display:block;
+  margin-top:10px;
+  font-weight:bold;
+}
+
+input{
+  width:100%;
+  padding:13px;
+  margin-top:6px;
+  border:1px solid #ccc;
+  border-radius:8px;
+  font-size:16px;
+}
+
+button{
+  width:100%;
+  border:0;
+  color:#fff;
+  padding:13px;
+  border-radius:8px;
+  font-size:15px;
+  font-weight:bold;
+  margin-top:8px;
+  cursor:pointer;
+}
+
+.green{background:#087a45}
+.red{background:#d9534f}
+.blue{background:#2878c8}
+.orange{background:#e09b00}
+.map-button{background:#168a45}
+
+.login-error{
+  display:none;
+  background:#ffe5e5;
+  color:#a33;
+  padding:12px;
+  border-radius:8px;
+  margin-top:12px;
+  text-align:center;
+  font-weight:bold;
+}
+
+.message{
+  display:none;
+  padding:13px;
+  border-radius:9px;
+  background:#e7f7ed;
+  color:#126b35;
+  margin-bottom:15px;
+  font-weight:bold;
+  text-align:center;
+  line-height:1.5;
+}
+
+.message.error{
+  background:#ffe5e5;
+  color:#a33;
+}
+
+.firebase-status{
+  background:#e8f1ff;
+  color:#24518a;
+  border-left:5px solid #2878c8;
+  padding:13px;
+  border-radius:9px;
+  margin-bottom:15px;
+  line-height:1.6;
+}
+
+.delivery-info{
+  background:#f0f8f2;
+  color:#126b35;
+  border-left:5px solid #168a45;
+  padding:13px;
+  border-radius:9px;
+  margin-bottom:15px;
+  line-height:1.7;
+}
+
+.order{
+  border:1px solid #ddd;
+  border-radius:12px;
+  padding:15px;
+  margin-top:12px;
+  background:#fff;
+}
+
+.order-id{
+  background:#f4f7f5;
+  padding:9px;
+  border-radius:8px;
+  margin-bottom:10px;
+  font-weight:bold;
+  word-break:break-all;
+}
+
+.info{
+  color:#555;
+  line-height:1.8;
+  font-size:14px;
+}
+
+.items{
+  border-top:1px solid #eee;
+  margin-top:10px;
+  padding-top:8px;
+}
+
+.item{
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  padding:7px 0;
+  border-bottom:1px solid #eee;
+}
+
+.total{
+  text-align:right;
+  color:#087a45;
+  font-size:18px;
+  font-weight:bold;
+  margin-top:10px;
+}
+
+.status{
+  display:block;
+  padding:9px;
+  border-radius:8px;
+  margin-top:10px;
+  font-weight:bold;
+  text-align:center;
+}
+
+.confirmed{
+  background:#dbeafe;
+  color:#1d4ed8;
+}
+
+.delivered{
+  background:#e7f7ed;
+  color:#126b35;
+}
+
+.cancelled{
+  background:#ffe5e5;
+  color:#a33;
+}
+
+.pending{
+  background:#fff3cd;
+  color:#856404;
+}
+
+.location-box{
+  background:#f0f8f2;
+  color:#126b35;
+  border-left:5px solid #168a45;
+  padding:12px;
+  border-radius:9px;
+  margin-top:12px;
+  line-height:1.6;
+}
+
+.empty{
+  text-align:center;
+  color:#777;
+  padding:18px 10px;
+}
+
+.small-note{
+  color:#777;
+  font-size:13px;
+  line-height:1.6;
+  margin-top:8px;
+}
+
+#deliveryPanel{
+  display:none;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🚚 VT Dairy Farm</h1>
+  <p>Delivery Panel</p>
+</header>
+
+
+<!-- LOGIN -->
+
+<div id="loginPage">
+
+  <div class="container">
+
+    <div class="card login-card">
+
+      <h2 class="login-title">
+        🚚 Delivery Boy Login
+      </h2>
+
+      <label>Email / Login ID</label>
+
+      <input
+        type="email"
+        id="deliveryEmail"
+        placeholder="Delivery Login Email"
+        autocomplete="username"
+      >
+
+      <label>Password</label>
+
+      <input
+        type="password"
+        id="deliveryPassword"
+        placeholder="Password"
+        autocomplete="current-password"
+      >
+
+      <button
+        class="green"
+        onclick="deliveryLogin()"
+      >
+        🔐 Login करें
+      </button>
+
+      <div
+        id="loginError"
+        class="login-error"
+      ></div>
+
+      <div class="small-note">
+        यह Login केवल Delivery Panel के लिए है।
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- DELIVERY PANEL -->
+
+<div id="deliveryPanel">
+
+  <div class="container">
+
+    <div class="delivery-info">
+
+      <b>🚚 Delivery Boy Panel</b>
+
+      <br>
+
+      यहाँ केवल आपको दिए गए Delivery Orders दिखाई देंगे।
+
+      <br>
+
+      दूसरे Customer Orders और Admin जानकारी इस Panel में नहीं दिखाई जाएगी।
+
+    </div>
+
+
+    <div
+      id="firebaseStatus"
+      class="firebase-status"
+    >
+      🔄 Firebase से connection जाँच रहा है...
+    </div>
+
+
+    <div
+      id="message"
+      class="message"
+    ></div>
+
+
+    <div class="card">
+
+      <b>👤 Login:</b>
+
+      <div
+        id="deliveryUser"
+        style="margin-top:6px;color:#087a45;font-weight:bold"
+      >
+        -
+      </div>
+
+      <button
+        class="blue"
+        onclick="loadMyOrders()"
+      >
+        🔄 Orders Refresh करें
+      </button>
+
+      <button
+        class="red"
+        onclick="deliveryLogout()"
+      >
+        🚪 Logout
+      </button>
+
+    </div>
+
+
+    <div class="card">
+
+      <h2>📦 मेरे Delivery Orders</h2>
+
+      <div id="orders">
+
+        <div class="empty">
+          🔄 Orders लोड हो रहे हैं...
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- FIREBASE -->
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+
+<script>
+
+const firebaseConfig = {
+
+  apiKey:
+  "AIzaSyD9cwaW54d5VRfK6rbuqSExcz27bFHdSm8",
+
+  authDomain:
+  "vt-dairy-farm-9afc8.firebaseapp.com",
+
+  projectId:
+  "vt-dairy-farm-9afc8",
+
+  storageBucket:
+  "vt-dairy-farm-9afc8.firebasestorage.app",
+
+  messagingSenderId:
+  "86012601125",
+
+  appId:
+  "1:86012601125:web:6a6d81f5d93aae16a030cc"
+
+};
+
+
+let auth = null;
+let db = null;
+let firebaseReady = false;
+let currentUser = null;
+
+
+try{
+
+  firebase.initializeApp(firebaseConfig);
+
+  auth = firebase.auth();
+
+  db = firebase.firestore();
+
+  firebaseReady = true;
+
+}catch(error){
+
+  console.error(
+    "Firebase Initialization Error:",
+    error
+  );
+
+  firebaseReady = false;
+
+}
+
+
+/* =========================
+   HELPERS
+========================= */
+
+function escapeHTML(value){
+
+  return String(value ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+
+}
+
+
+function escapeJS(value){
+
+  return String(value ?? "")
+    .replace(/\\/g,"\\\\")
+    .replace(/'/g,"\\'")
+    .replace(/"/g,'\\"')
+    .replace(/\n/g,"\\n")
+    .replace(/\r/g,"\\r");
+
+}
+
+
+function showMessage(text,isError=false){
+
+  const box =
+    document.getElementById("message");
+
+  if(!box)return;
+
+  box.textContent = text;
+
+  box.className =
+    isError
+    ? "message error"
+    : "message";
+
+  box.style.display = "block";
+
+  clearTimeout(window.messageTimer);
+
+  window.messageTimer =
+    setTimeout(function(){
+
+      box.style.display = "none";
+
+    },4000);
+
+}
+
+
+/* =========================
+   FIREBASE STATUS
+========================= */
+
+function updateFirebaseStatus(){
+
+  const box =
+    document.getElementById("firebaseStatus");
+
+  if(!box)return;
+
+  if(firebaseReady){
+
+    box.innerHTML =
+      "🟢 Firebase Database जुड़ा हुआ है।";
+
+  }else{
+
+    box.innerHTML =
+      "🔴 Firebase Database उपलब्ध नहीं है।";
+
+  }
+
+}
+
+
+/* =========================
+   LOGIN
+========================= */
+
+async function deliveryLogin(){
+
+  const email =
+    document
+      .getElementById("deliveryEmail")
+      .value
+      .trim()
+      .toLowerCase();
+
+  const password =
+    document
+      .getElementById("deliveryPassword")
+      .value;
+
+  const errorBox =
+    document.getElementById("loginError");
+
+
+  errorBox.style.display = "none";
+
+
+  if(!email || !password){
+
+    errorBox.textContent =
+      "❌ Email और Password दोनों डालें।";
+
+    errorBox.style.display = "block";
+
+    return;
+
+  }
+
+
+  if(!firebaseReady || !auth){
+
+    errorBox.textContent =
+      "❌ Firebase उपलब्ध नहीं है।";
+
+    errorBox.style.display = "block";
+
+    return;
+
+  }
+
+
+  try{
+
+    await auth.signInWithEmailAndPassword(
+      email,
+      password
+    );
+
+  }catch(error){
+
+    console.error(
+      "Delivery Login Error:",
+      error
+    );
+
+    errorBox.textContent =
+      "❌ Login नहीं हुआ। Email या Password जाँचें।";
+
+    errorBox.style.display = "block";
+
+  }
+
+}
+
+
+function deliveryLogout(){
+
+  if(auth){
+
+    auth.signOut();
+
+  }
+
+}
+
+
+/* =========================
+   PANEL
+========================= */
+
+function showDeliveryPanel(user){
+
+  currentUser = user;
+
+  document
+    .getElementById("loginPage")
+    .style.display = "none";
+
+  document
+    .getElementById("deliveryPanel")
+    .style.display = "block";
+
+  document
+    .getElementById("deliveryUser")
+    .textContent =
+      user.email || "";
+
+  updateFirebaseStatus();
+
+  loadMyOrders();
+
+  window.scrollTo(0,0);
+
+}
+
+
+function showLoginPage(){
+
+  document
+    .getElementById("loginPage")
+    .style.display = "block";
+
+  document
+    .getElementById("deliveryPanel")
+    .style.display = "none";
+
+}
+
+
+/* =========================
+   LOAD ASSIGNED ORDERS
+   IMPORTANT:
+   ADMIN assignedToEmail में
+   Delivery Boy का Email save करता है.
+========================= */
+
+async function loadMyOrders(){
+
+  const box =
+    document.getElementById("orders");
+
+  if(!box)return;
+
+
+  if(!currentUser){
+
+    box.innerHTML =
+      '<div class="empty">🔐 पहले Login करें।</div>';
+
+    return;
+
+  }
+
+
+  if(!firebaseReady || !db){
+
+    box.innerHTML =
+      '<div class="empty">🔴 Firebase उपलब्ध नहीं है।</div>';
+
+    return;
+
+  }
+
+
+  const loginEmail =
+    String(
+      currentUser.email || ""
+    )
+    .trim()
+    .toLowerCase();
+
+
+  if(!loginEmail){
+
+    box.innerHTML =
+      '<div class="empty">❌ Login Email नहीं मिला।</div>';
+
+    return;
+
+  }
+
+
+  box.innerHTML =
+    '<div class="empty">🔄 आपके Orders लोड हो रहे हैं...</div>';
+
+
+  try{
+
+    /*
+      यही मुख्य सुधार है।
+      अब Order assignedToEmail से खोजा जाएगा।
+    */
+
+    const snapshot =
+      await db
+        .collection("orders")
+        .where(
+          "assignedToEmail",
+          "==",
+          loginEmail
+        )
+        .get();
+
+
+    const orders = [];
+
+
+    snapshot.forEach(function(doc){
+
+      const data =
+        doc.data() || {};
+
+      orders.push({
+
+        ...data,
+
+        id:
+          data.id || doc.id
+
+      });
+
+    });
+
+
+    orders.sort(function(a,b){
+
+      return String(
+        b.createdAt || ""
+      ).localeCompare(
+        String(
+          a.createdAt || ""
+        )
+      );
+
+    });
+
+
+    if(!orders.length){
+
+      box.innerHTML =
+        '<div class="empty">' +
+        '📦 अभी आपको कोई Delivery Order नहीं दिया गया है।' +
+        '<br><br>' +
+        'Admin Panel में इसी Gmail ID पर Order Assign होना चाहिए।' +
+        '</div>';
+
+      return;
+
+    }
+
+
+    box.innerHTML = "";
+
+
+    orders.forEach(function(order){
+
+      box.innerHTML +=
+        createOrderHTML(order);
+
+    });
+
+
+  }catch(error){
+
+    console.error(
+      "Delivery Orders Error:",
+      error
+    );
+
+    box.innerHTML =
+      '<div class="empty">' +
+      '🔴 Orders पढ़े नहीं जा सके।' +
+      '<br>' +
+      'Firebase Rules जाँचें।' +
+      '</div>';
+
+  }
+
+}
+
+
+/* =========================
+   ORDER HTML
+========================= */
+
+function createOrderHTML(order){
+
+  let itemsHTML = "";
+
+
+  if(Array.isArray(order.items)){
+
+    order.items.forEach(function(item){
+
+      const qty =
+        item.qty ??
+        item.quantity ??
+        1;
+
+      const amount =
+        Number(item.price || 0) *
+        Number(qty || 0);
+
+
+      itemsHTML += `
+
+        <div class="item">
+
+          <span>
+
+            ${escapeHTML(
+              item.name || "Product"
+            )}
+
+            × ${escapeHTML(qty)}
+
+            ${escapeHTML(
+              item.unit || ""
+            )}
+
+          </span>
+
+          <span>
+            ₹${amount.toFixed(2)}
+          </span>
+
+        </div>
+
+      `;
+
+    });
+
+  }
+
+
+  const total =
+    Number(order.total || 0);
+
+
+  const status =
+    order.status || "Pending";
+
+
+  const dateText =
+    order.createdAt
+    ?
+    new Date(
+      order.createdAt
+    ).toLocaleString("hi-IN")
+    :
+    "";
+
+
+  let statusClass = "pending";
+
+
+  if(status === "Confirmed"){
+    statusClass = "confirmed";
+  }
+
+  if(status === "Delivered"){
+    statusClass = "delivered";
+  }
+
+  if(status === "Cancelled"){
+    statusClass = "cancelled";
+  }
+
+
+  /* LOCATION */
+
+  let locationHTML = "";
+
+
+  const latitude =
+    Number(order.latitude);
+
+  const longitude =
+    Number(order.longitude);
+
+
+  if(
+
+    Number.isFinite(latitude) &&
+
+    Number.isFinite(longitude) &&
+
+    latitude >= -90 &&
+
+    latitude <= 90 &&
+
+    longitude >= -180 &&
+
+    longitude <= 180
+
+  ){
+
+    locationHTML = `
+
+      <div class="location-box">
+
+        <b>📍 Customer Location</b>
+
+        <br>
+
+        Latitude:
+        ${escapeHTML(latitude)}
+
+        <br>
+
+        Longitude:
+        ${escapeHTML(longitude)}
+
+        <button
+          class="map-button"
+          onclick="openMap(
+            ${latitude},
+            ${longitude}
+          )"
+        >
+          🗺️ Google Maps में Location खोलें
+        </button>
+
+      </div>
+
+    `;
+
+  }else{
+
+    locationHTML = `
+
+      <div class="location-box">
+
+        <b>📍 Location</b>
+
+        <br>
+
+        Customer ने Current Location नहीं भेजी।
+
+      </div>
+
+    `;
+
+  }
+
+
+  /* DELIVERY BUTTONS */
+
+  let deliveryButton = "";
+
+
+  if(status === "Confirmed"){
+
+    deliveryButton = `
+
+      <button
+        class="green"
+        onclick="markDelivered(
+          '${escapeJS(order.id || "")}'
+        )"
+      >
+        🚚 Delivery पूरी हुई
+      </button>
+
+      <button
+        class="orange"
+        onclick="requestCancel(
+          '${escapeJS(order.id || "")}'
+        )"
+      >
+        ❌ Cancel की Request करें
+      </button>
+
+    `;
+
+  }
+
+
+  if(status === "Delivered"){
+
+    deliveryButton = `
+
+      <div class="status delivered">
+
+        ✅ Delivery पूरी हो चुकी है।
+
+      </div>
+
+    `;
+
+  }
+
+
+  if(status === "Cancelled"){
+
+    deliveryButton = `
+
+      <div class="status cancelled">
+
+        ❌ यह Order Cancel हो चुका है।
+
+      </div>
+
+    `;
+
+  }
+
+
+  return `
+
+    <div class="order">
+
+      <div class="order-id">
+
+        Order ID:
+        ${escapeHTML(order.id || "")}
+
+      </div>
+
+
+      <h3>
+
+        👤
+        ${escapeHTML(
+          order.name ||
+          order.customerName ||
+          "Customer"
+        )}
+
+      </h3>
+
+
+      <div class="info">
+
+        📞
+        ${escapeHTML(order.phone || "")}
+
+        <br>
+
+        📍
+        ${escapeHTML(order.address || "")}
+
+        <br>
+
+        📅
+        ${escapeHTML(dateText)}
+
+      </div>
+
+
+      ${locationHTML}
+
+
+      <div class="items">
+
+        ${itemsHTML}
+
+      </div>
+
+
+      <div class="total">
+
+        कुल:
+        ₹${total.toFixed(2)}
+
+      </div>
+
+
+      <div class="status ${statusClass}">
+
+        वर्तमान Status:
+        ${escapeHTML(status)}
+
+      </div>
+
+
+      ${deliveryButton}
+
+    </div>
+
+  `;
+
+}
+
+
+/* =========================
+   GOOGLE MAP
+========================= */
+
+function openMap(latitude,longitude){
+
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+
+
+  if(
+
+    !Number.isFinite(lat) ||
+
+    !Number.isFinite(lng)
+
+  ){
+
+    showMessage(
+      "❌ Location सही नहीं मिली।",
+      true
+    );
+
+    return;
+
+  }
+
+
+  const url =
+    "https://www.google.com/maps?q=" +
+    encodeURIComponent(
+      lat + "," + lng
+    );
+
+
+  window.open(
+    url,
+    "_blank"
+  );
+
+}
+
+
+/* =========================
+   DELIVERED
+========================= */
+
+async function markDelivered(orderId){
+
+  if(!orderId){
+
+    showMessage(
+      "❌ Order ID नहीं मिला।",
+      true
+    );
+
+    return;
+
+  }
+
+
+  if(!firebaseReady || !db){
+
+    showMessage(
+      "🔴 Firebase उपलब्ध नहीं है।",
+      true
+    );
+
+    return;
+
+  }
+
+
+  if(!currentUser){
+
+    showMessage(
+      "❌ पहले Login करें।",
+      true
+    );
+
+    return;
+
+  }
+
+
+  const confirmDelivery =
+    window.confirm(
+      "क्या यह Order Customer को दे दिया गया है?"
+    );
+
+
+  if(!confirmDelivery){
+
+    return;
+
+  }
+
+
+  try{
+
+    await db
+      .collection("orders")
+      .doc(orderId)
+      .update({
+
+        status:"Delivered",
+
+        deliveredAt:
+          new Date().toISOString(),
+
+        deliveredBy:
+          currentUser.uid
+
+      });
+
+
+    showMessage(
+      "🟢 Order Delivered mark हो गया।"
+    );
+
+
+    await loadMyOrders();
+
+
+  }catch(error){
+
+    console.error(
+      "Delivered Error:",
+      error
+    );
+
+    showMessage(
+      "🔴 Delivered update नहीं हुआ। Firebase Rules जाँचें।",
+      true
+    );
+
+  }
+
+}
+
+
+/* =========================
+   CANCEL REQUEST
+========================= */
+
+async function requestCancel(orderId){
+
+  if(!orderId){
+
+    showMessage(
+      "❌ Order ID नहीं मिला।",
+      true
+    );
+
+    return;
+
+  }
+
+
+  if(!firebaseReady || !db){
+
+    showMessage(
+      "🔴 Firebase उपलब्ध नहीं है।",
+      true
+    );
+
+    return;
+
+  }
+
+
+  if(!currentUser){
+
+    showMessage(
+      "❌ पहले Login करें।",
+      true
+    );
+
+    return;
+
+  }
+
+
+  const reason =
+    window.prompt(
+      "Cancel करने का कारण लिखें:"
+    );
+
+
+  if(reason === null){
+
+    return;
+
+  }
+
+
+  if(!reason.trim()){
+
+    showMessage(
+      "❌ Cancel का कारण लिखना जरूरी है।",
+      true
+    );
+
+    return;
+
+  }
+
+
+  try{
+
+    await db
+      .collection("orders")
+      .doc(orderId)
+      .update({
+
+        cancelRequested:true,
+
+        cancelReason:
+          reason.trim(),
+
+        cancelRequestedAt:
+          new Date().toISOString(),
+
+        cancelRequestedBy:
+          currentUser.uid
+
+      });
+
+
+    showMessage(
+      "🟠 Cancel Request Admin को भेज दी गई है।"
+    );
+
+
+    await loadMyOrders();
+
+
+  }catch(error){
+
+    console.error(
+      "Cancel Request Error:",
+      error
+    );
+
+    showMessage(
+      "🔴 Cancel Request नहीं भेजी गई। Firebase Rules जाँचें।",
+      true
+    );
+
+  }
+
+}
+
+
+/* =========================
+   AUTH STATE
+========================= */
+
+if(firebaseReady && auth){
+
+  updateFirebaseStatus();
+
+  auth.onAuthStateChanged(
+    function(user){
+
+      if(user){
+
+        showDeliveryPanel(user);
+
+      }else{
+
+        currentUser = null;
+
+        showLoginPage();
+
+      }
+
+    }
+  );
+
+}else{
+
+  showLoginPage();
+
+}
+
+
+/* =========================
+   ENTER KEY
+========================= */
+
+document.addEventListener(
+  "keydown",
+  function(event){
+
+    const loginPage =
+      document.getElementById("loginPage");
+
+    if(
+
+      event.key === "Enter" &&
+
+      loginPage &&
+
+      loginPage.style.display !== "none"
+
+    ){
+
+      deliveryLogin();
+
+    }
+
+  }
+);
+
+</script>
+
+</body>
+</html>

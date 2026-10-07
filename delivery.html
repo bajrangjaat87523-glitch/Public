@@ -1,0 +1,1945 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+name="viewport"
+content="width=device-width,initial-scale=1.0"
+>
+
+<title>VT Dairy Farm - Delivery</title>
+
+<style>
+
+*{
+box-sizing:border-box;
+margin:0;
+padding:0;
+font-family:Arial,sans-serif;
+}
+
+body{
+background:#f4f7f5;
+color:#222;
+padding-bottom:30px;
+}
+
+header{
+background:#087a45;
+color:white;
+padding:22px 15px;
+text-align:center;
+}
+
+header h1{
+font-size:25px;
+}
+
+header p{
+margin-top:6px;
+}
+
+.container{
+width:94%;
+max-width:700px;
+margin:18px auto;
+}
+
+.card{
+background:white;
+border-radius:14px;
+padding:17px;
+margin-bottom:15px;
+box-shadow:0 2px 8px #0001;
+}
+
+.card h2{
+margin-bottom:12px;
+}
+
+.login-card{
+margin-top:35px;
+}
+
+.login-title{
+text-align:center;
+color:#087a45;
+margin-bottom:20px;
+}
+
+label{
+display:block;
+margin-top:10px;
+font-weight:bold;
+}
+
+input,
+textarea{
+width:100%;
+padding:13px;
+margin-top:6px;
+border:1px solid #ccc;
+border-radius:8px;
+font-size:16px;
+}
+
+textarea{
+min-height:90px;
+resize:vertical;
+}
+
+button{
+width:100%;
+border:0;
+color:white;
+padding:13px;
+border-radius:8px;
+font-size:15px;
+font-weight:bold;
+margin-top:8px;
+cursor:pointer;
+}
+
+button:disabled{
+cursor:not-allowed;
+}
+
+.green{
+background:#087a45;
+}
+
+.red{
+background:#d9534f;
+}
+
+.blue{
+background:#2878c8;
+}
+
+.orange{
+background:#e09b00;
+}
+
+.map-button{
+background:#168a45;
+}
+
+.login-error{
+display:none;
+background:#ffe5e5;
+color:#a33;
+padding:12px;
+border-radius:8px;
+margin-top:12px;
+text-align:center;
+font-weight:bold;
+}
+
+#deliveryPanel{
+display:none;
+}
+
+.firebase-status{
+background:#e8f1ff;
+color:#24518a;
+border-left:5px solid #2878c8;
+padding:13px;
+border-radius:9px;
+margin-bottom:15px;
+line-height:1.6;
+}
+
+.notice{
+background:#fff8d9;
+border-left:5px solid #e0ad00;
+padding:14px;
+border-radius:9px;
+margin-bottom:15px;
+line-height:1.6;
+}
+
+.message{
+display:none;
+padding:13px;
+border-radius:9px;
+background:#e7f7ed;
+color:#126b35;
+margin-bottom:15px;
+font-weight:bold;
+text-align:center;
+line-height:1.5;
+}
+
+.message.error{
+background:#ffe5e5;
+color:#a33;
+}
+
+.order{
+border:1px solid #e1e1e1;
+border-radius:10px;
+padding:13px;
+margin-top:12px;
+}
+
+.order-id{
+background:#f4f7f5;
+padding:9px;
+border-radius:8px;
+margin-bottom:10px;
+font-weight:bold;
+word-break:break-all;
+}
+
+.order h3{
+margin-bottom:8px;
+}
+
+.info{
+color:#555;
+line-height:1.7;
+font-size:14px;
+}
+
+.items{
+border-top:1px solid #eee;
+margin-top:10px;
+padding-top:8px;
+}
+
+.item{
+display:flex;
+justify-content:space-between;
+gap:8px;
+padding:7px 0;
+border-bottom:1px solid #eee;
+}
+
+.total{
+text-align:right;
+color:#087a45;
+font-size:18px;
+font-weight:bold;
+margin-top:10px;
+}
+
+.order-status{
+display:block;
+padding:9px;
+border-radius:7px;
+background:#fff3cd;
+color:#856404;
+margin-top:10px;
+font-weight:bold;
+text-align:center;
+}
+
+.location-box{
+background:#f0f8f2;
+color:#126b35;
+border-left:5px solid #168a45;
+padding:12px;
+border-radius:9px;
+margin-top:12px;
+line-height:1.6;
+}
+
+.delivery-actions{
+margin-top:14px;
+padding-top:12px;
+border-top:1px solid #eee;
+}
+
+.empty{
+text-align:center;
+color:#777;
+padding:18px 10px;
+}
+
+.user-box{
+background:#e7f7ed;
+color:#126b35;
+padding:12px;
+border-radius:9px;
+margin-bottom:15px;
+line-height:1.6;
+}
+
+.notification-note{
+background:#eef7ff;
+color:#24518a;
+border-left:5px solid #2878c8;
+padding:12px;
+border-radius:9px;
+margin-top:10px;
+line-height:1.6;
+font-size:14px;
+}
+
+.notification-box{
+background:#e8f1ff;
+color:#24518a;
+border-left:5px solid #2878c8;
+padding:13px;
+border-radius:9px;
+margin-bottom:15px;
+line-height:1.6;
+}
+
+.notification-success{
+background:#e7f7ed;
+color:#126b35;
+border-left:5px solid #087a45;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<header>
+
+<h1>🚚 VT Dairy Farm</h1>
+
+<p>Delivery Panel</p>
+
+</header>
+
+
+<!-- ================================
+     LOGIN
+================================ -->
+
+<div id="loginPage">
+
+<div class="container">
+
+<div class="card login-card">
+
+<h2 class="login-title">
+🔐 Delivery Boy Login
+</h2>
+
+<label>
+Email
+</label>
+
+<input
+type="email"
+id="deliveryEmail"
+placeholder="Delivery Email डालें"
+>
+
+<label>
+Password
+</label>
+
+<input
+type="password"
+id="deliveryPassword"
+placeholder="Password डालें"
+>
+
+<button
+class="green"
+onclick="deliveryLogin()"
+>
+🔐 Login करें
+</button>
+
+<div
+id="loginError"
+class="login-error"
+></div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ================================
+     DELIVERY PANEL
+================================ -->
+
+<div id="deliveryPanel">
+
+<div class="container">
+
+
+<div class="user-box">
+
+<b>🚚 Delivery Boy Login:</b>
+
+<br>
+
+<span id="loggedInEmail">
+-
+</span>
+
+</div>
+
+
+<div class="notice">
+
+<b>📦 Delivery काम</b>
+
+<br>
+
+आपको Admin द्वारा Assign किए गए Orders यहाँ दिखाई देंगे।
+
+<br><br>
+
+<b>🔔 Delivery Notification:</b>
+
+<br>
+
+जब Admin आपको नया Order Assign करेगा,
+तो इस फोन पर Notification प्राप्त करने के लिए
+Notification Permission चालू रखें।
+
+<br><br>
+
+<b>✅ Delivery Complete:</b>
+
+<br>
+
+Customer को सामान देने के बाद
+<b>“कलेक्ट / Delivery Complete”</b>
+दबाएँ।
+
+<br><br>
+
+❌ इस सिस्टम में Delivery के लिए OTP नहीं है।
+
+</div>
+
+
+<!-- ================================
+     NOTIFICATION STATUS
+================================ -->
+
+<div
+id="notificationStatus"
+class="notification-box"
+>
+
+🔄 Notification System तैयार हो रहा है...
+
+</div>
+
+
+<button
+class="blue"
+onclick="enableDeliveryNotifications()"
+>
+
+🔔 Delivery Notifications चालू करें
+
+</button>
+
+
+<div
+id="firebaseStatus"
+class="firebase-status"
+>
+🔄 Firebase Database से कनेक्शन जाँच रहा है...
+</div>
+
+
+<button
+class="blue"
+onclick="loadOrders()"
+>
+🔄 Orders Refresh करें
+</button>
+
+
+<button
+class="red"
+onclick="deliveryLogout()"
+>
+🚪 Logout
+</button>
+
+
+<div
+id="message"
+class="message"
+></div>
+
+
+<div class="card">
+
+<h2>📦 मेरे Assigned Orders</h2>
+
+<div id="orders">
+
+<div class="empty">
+🔄 Orders लोड हो रहे हैं...
+</div>
+
+</div>
+
+</div>
+
+
+</div>
+
+</div>
+
+
+<!-- ================================
+     FIREBASE
+================================ -->
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+
+
+<script>
+
+const firebaseConfig={
+
+apiKey:
+"AIzaSyD9cwaW54d5VRfK6rbuqSExcz27bFHdSm8",
+
+authDomain:
+"vt-dairy-farm-9afc8.firebaseapp.com",
+
+projectId:
+"vt-dairy-farm-9afc8",
+
+storageBucket:
+"vt-dairy-farm-9afc8.firebasestorage.app",
+
+messagingSenderId:
+"86012601125",
+
+appId:
+"1:86012601125:web:6a6d81f5d93aae16a030cc"
+
+};
+
+
+let db=null;
+
+let auth=null;
+
+let messaging=null;
+
+let firebaseReady=false;
+
+
+/* ================================
+   FCM WEB PUSH KEY
+================================ */
+
+/*
+   IMPORTANT:
+   यहाँ Firebase Console से Web Push certificate
+   का Public Key/VAPID Key डालना होगा।
+
+   अभी खाली रखा गया है ताकि गलत key से
+   notification system error न करे.
+*/
+
+const VAPID_KEY="";
+
+
+try{
+
+firebase.initializeApp(firebaseConfig);
+
+auth=firebase.auth();
+
+db=firebase.firestore();
+
+try{
+
+messaging=firebase.messaging();
+
+}catch(error){
+
+console.error(
+"Firebase Messaging Error:",
+error
+);
+
+messaging=null;
+
+}
+
+firebaseReady=true;
+
+}catch(error){
+
+console.error(error);
+
+firebaseReady=false;
+
+}
+
+
+/* ================================
+   SAFETY
+================================ */
+
+function escapeHTML(value){
+
+return String(value??"")
+
+.replace(/&/g,"&amp;")
+
+.replace(/</g,"&lt;")
+
+.replace(/>/g,"&gt;")
+
+.replace(/"/g,"&quot;")
+
+.replace(/'/g,"&#039;");
+
+}
+
+
+function escapeJS(value){
+
+return String(value??"")
+
+.replace(/\\/g,"\\\\")
+
+.replace(/'/g,"\\'")
+
+.replace(/"/g,'\\"')
+
+.replace(/\n/g,"\\n")
+
+.replace(/\r/g,"\\r");
+
+}
+
+
+/* ================================
+   MESSAGE
+================================ */
+
+function showMessage(
+text,
+isError=false
+){
+
+const box=
+document.getElementById("message");
+
+if(!box)return;
+
+box.textContent=text;
+
+box.className=
+isError
+?
+"message error"
+:
+"message";
+
+box.style.display="block";
+
+clearTimeout(
+window.messageTimer
+);
+
+window.messageTimer=
+setTimeout(function(){
+
+box.style.display="none";
+
+},5000);
+
+}
+
+
+/* ================================
+   NOTIFICATION STATUS
+================================ */
+
+function setNotificationStatus(
+text,
+success=false
+){
+
+const box=
+document.getElementById(
+"notificationStatus"
+);
+
+if(!box)return;
+
+box.textContent=text;
+
+box.className=
+success
+?
+"notification-box notification-success"
+:
+"notification-box";
+
+}
+
+
+/* ================================
+   FIREBASE STATUS
+================================ */
+
+function updateFirebaseStatus(){
+
+const box=
+document.getElementById(
+"firebaseStatus"
+);
+
+if(!box)return;
+
+if(firebaseReady){
+
+box.innerHTML=
+"🟢 Firebase Database जुड़ा हुआ है।<br>"+
+"Delivery Login सुरक्षित है।";
+
+}else{
+
+box.innerHTML=
+"🔴 Firebase Database से कनेक्शन नहीं हुआ।";
+
+}
+
+}
+
+
+/* ================================
+   LOGIN
+================================ */
+
+async function deliveryLogin(){
+
+const email=
+document
+.getElementById("deliveryEmail")
+.value
+.trim()
+.toLowerCase();
+
+const password=
+document
+.getElementById("deliveryPassword")
+.value;
+
+const errorBox=
+document.getElementById(
+"loginError"
+);
+
+errorBox.style.display="none";
+
+
+if(!email||!password){
+
+errorBox.textContent=
+"❌ Email और Password दोनों डालें।";
+
+errorBox.style.display="block";
+
+return;
+
+}
+
+
+if(!auth){
+
+errorBox.textContent=
+"❌ Firebase Authentication उपलब्ध नहीं है।";
+
+errorBox.style.display="block";
+
+return;
+
+}
+
+
+try{
+
+await auth.signInWithEmailAndPassword(
+email,
+password
+);
+
+}catch(error){
+
+console.error(error);
+
+errorBox.textContent=
+"❌ Email या Password गलत है।";
+
+errorBox.style.display="block";
+
+}
+
+}
+
+
+/* ================================
+   LOGOUT
+================================ */
+
+function deliveryLogout(){
+
+if(auth){
+
+auth.signOut();
+
+}
+
+}
+
+
+/* ================================
+   SHOW PANEL
+================================ */
+
+function showDeliveryPanel(user){
+
+document
+.getElementById("loginPage")
+.style.display="none";
+
+document
+.getElementById("deliveryPanel")
+.style.display="block";
+
+
+document
+.getElementById("loggedInEmail")
+.textContent=
+user.email||"-";
+
+
+updateFirebaseStatus();
+
+checkNotificationStatus();
+
+loadOrders();
+
+window.scrollTo(0,0);
+
+}
+
+
+/* ================================
+   SHOW LOGIN
+================================ */
+
+function showLoginPage(){
+
+document
+.getElementById("loginPage")
+.style.display="block";
+
+document
+.getElementById("deliveryPanel")
+.style.display="none";
+
+document
+.getElementById("deliveryPassword")
+.value="";
+
+}
+
+
+/* ================================
+   ENTER LOGIN
+================================ */
+
+document.addEventListener(
+"keydown",
+function(event){
+
+if(
+event.key==="Enter" &&
+document
+.getElementById("loginPage")
+.style.display!=="none"
+){
+
+deliveryLogin();
+
+}
+
+});
+
+
+/* ================================
+   NOTIFICATION STATUS CHECK
+================================ */
+
+function checkNotificationStatus(){
+
+if(!("Notification" in window)){
+
+setNotificationStatus(
+"⚠️ इस Browser में Notification support उपलब्ध नहीं है।"
+);
+
+return;
+
+}
+
+
+if(Notification.permission==="granted"){
+
+setNotificationStatus(
+"🟢 Notifications चालू हैं।",
+true
+);
+
+}else if(
+Notification.permission==="denied"
+){
+
+setNotificationStatus(
+"🔴 Notifications Block हैं। Browser Settings में जाकर Notifications Allow करें।"
+);
+
+}else{
+
+setNotificationStatus(
+"🟡 Notifications अभी चालू नहीं हैं। ऊपर वाला बटन दबाएँ।"
+);
+
+}
+
+}
+
+
+/* ================================
+   ENABLE DELIVERY NOTIFICATIONS
+================================ */
+
+async function enableDeliveryNotifications(){
+
+if(!firebaseReady||!auth||!auth.currentUser){
+
+showMessage(
+"🔐 पहले Delivery Login करें।",
+true
+);
+
+return;
+
+}
+
+
+if(!messaging){
+
+setNotificationStatus(
+"❌ Firebase Messaging उपलब्ध नहीं है।"
+);
+
+showMessage(
+"❌ Notification System उपलब्ध नहीं है।",
+true
+);
+
+return;
+
+}
+
+
+if(!("Notification" in window)){
+
+setNotificationStatus(
+"⚠️ इस Browser में Notification support उपलब्ध नहीं है।"
+);
+
+return;
+
+}
+
+
+try{
+
+const permission=
+await Notification.requestPermission();
+
+
+if(permission!=="granted"){
+
+setNotificationStatus(
+"🔴 Notification Permission नहीं मिली।"
+);
+
+showMessage(
+"🔴 Notifications Allow नहीं की गईं।",
+true
+);
+
+return;
+
+}
+
+
+/*
+   VAPID key अभी खाली है।
+   Firebase Console की Web Push certificate
+   Public Key डालने के बाद token generate होगा.
+*/
+
+if(!VAPID_KEY){
+
+setNotificationStatus(
+"🟡 Permission चालू हो गई है। Firebase Web Push Public Key डालने के बाद Token setup पूरा होगा।"
+);
+
+showMessage(
+"🟡 Notification Permission चालू हो गई है। अभी FCM key setup बाकी है।"
+);
+
+return;
+
+}
+
+
+const registration=
+await navigator.serviceWorker.register(
+"./firebase-messaging-sw.js"
+);
+
+
+const token=
+await messaging.getToken({
+
+vapidKey:
+VAPID_KEY,
+
+serviceWorkerRegistration:
+registration
+
+});
+
+
+if(!token){
+
+setNotificationStatus(
+"❌ Notification Token नहीं मिला।"
+);
+
+return;
+
+}
+
+
+const user=
+auth.currentUser;
+
+
+await db
+.collection("notificationTokens")
+.doc(token)
+.set({
+
+token:
+token,
+
+type:
+"delivery",
+
+deliveryEmail:
+String(
+user.email||""
+).toLowerCase(),
+
+uid:
+user.uid||"",
+
+updatedAt:
+new Date().toISOString()
+
+},{merge:true});
+
+
+localStorage.setItem(
+"vtDairyDeliveryNotificationToken",
+token
+);
+
+
+setNotificationStatus(
+"🟢 Delivery Notifications चालू हैं।",
+true
+);
+
+showMessage(
+"🟢 Delivery Notifications सफलतापूर्वक चालू हो गईं।"
+);
+
+
+}catch(error){
+
+console.error(
+"Notification Error:",
+error
+);
+
+setNotificationStatus(
+"❌ Notification setup नहीं हो पाया।"
+);
+
+showMessage(
+"❌ Notification setup नहीं हुआ। Browser Permission और Firebase setup जाँचें।",
+true
+);
+
+}
+
+}
+
+
+/* ================================
+   FOREGROUND NOTIFICATION
+================================ */
+
+function setupForegroundNotifications(){
+
+if(!messaging)return;
+
+
+messaging.onMessage(
+function(payload){
+
+console.log(
+"Foreground Notification:",
+payload
+);
+
+
+const title=
+payload?.notification?.title||
+"🚚 VT Dairy Farm";
+
+
+const body=
+payload?.notification?.body||
+"आपको नया Delivery Order मिला है।";
+
+
+showMessage(
+"🔔 "+
+title+
+" — "+
+body
+);
+
+
+try{
+
+if(
+"Notification" in window &&
+Notification.permission==="granted"
+){
+
+new Notification(
+title,
+{
+body:body,
+icon:"./icon-192.png"
+}
+);
+
+}
+
+}catch(error){
+
+console.error(
+"Foreground Notification Error:",
+error
+);
+
+}
+
+loadOrders();
+
+});
+
+}
+
+
+/* ================================
+   LOAD ORDERS
+================================ */
+
+async function loadOrders(){
+
+const box=
+document.getElementById("orders");
+
+if(!box)return;
+
+
+box.innerHTML=
+'<div class="empty">🔄 Assigned Orders लोड हो रहे हैं...</div>';
+
+
+if(
+!firebaseReady||
+!db||
+!auth.currentUser
+){
+
+box.innerHTML=
+'<div class="empty">🔐 पहले Delivery Login करें।</div>';
+
+return;
+
+}
+
+
+const email=
+String(
+auth.currentUser.email||""
+)
+.toLowerCase();
+
+
+if(!email){
+
+box.innerHTML=
+'<div class="empty">❌ Delivery Email नहीं मिला।</div>';
+
+return;
+
+}
+
+
+try{
+
+const snapshot=
+await db
+.collection("orders")
+.where(
+"assignedToEmail",
+"==",
+email
+)
+.get();
+
+
+const orders=[];
+
+
+snapshot.forEach(function(doc){
+
+const data=
+doc.data()||{};
+
+
+orders.push({
+
+...data,
+
+id:data.id||doc.id,
+
+_firestoreDocId:
+doc.id
+
+});
+
+});
+
+
+orders.sort(function(a,b){
+
+return String(
+b.createdAt||""
+)
+.localeCompare(
+String(a.createdAt||"")
+);
+
+});
+
+
+if(!orders.length){
+
+box.innerHTML=
+'<div class="empty">📦 अभी कोई Order आपको Assign नहीं है।</div>';
+
+return;
+
+}
+
+
+box.innerHTML="";
+
+
+orders.forEach(function(order){
+
+box.innerHTML+=
+createOrderHTML(order);
+
+});
+
+
+}catch(error){
+
+console.error(
+"Load Orders Error:",
+error
+);
+
+box.innerHTML=
+'<div class="empty">🔴 Orders लोड नहीं हुए। Firebase Rules जाँचें।</div>';
+
+}
+
+}
+
+
+/* ================================
+   ORDER HTML
+================================ */
+
+function createOrderHTML(order){
+
+let itemsHTML="";
+
+
+if(Array.isArray(order.items)){
+
+order.items.forEach(function(item){
+
+const qty=
+item.qty ??
+item.quantity ??
+1;
+
+
+const amount=
+Number(item.price||0)*
+Number(qty||0);
+
+
+itemsHTML+=`
+
+<div class="item">
+
+<span>
+
+${escapeHTML(
+item.name||"Product"
+)}
+
+× ${escapeHTML(qty)}
+
+${escapeHTML(
+item.unit||""
+)}
+
+</span>
+
+
+<span>
+
+₹${amount.toFixed(2)}
+
+</span>
+
+</div>
+
+`;
+
+});
+
+}
+
+
+const total=
+Number(order.total)||
+Number(order.order_total)||
+0;
+
+
+const status=
+order.status||"Pending";
+
+
+const dateText=
+order.createdAt
+?
+new Date(
+order.createdAt
+).toLocaleString("hi-IN")
+:
+(order.date||"नहीं है");
+
+
+/* ================================
+   LOCATION
+================================ */
+
+let locationHTML="";
+
+
+const latitude=
+Number(order.latitude);
+
+const longitude=
+Number(order.longitude);
+
+
+if(
+
+Number.isFinite(latitude)&&
+Number.isFinite(longitude)&&
+latitude>=-90&&
+latitude<=90&&
+longitude>=-180&&
+longitude<=180
+
+){
+
+locationHTML=`
+
+<div class="location-box">
+
+<b>📍 Customer Location उपलब्ध है</b>
+
+<br>
+
+Latitude:
+${escapeHTML(latitude)}
+
+<br>
+
+Longitude:
+${escapeHTML(longitude)}
+
+
+<button
+class="map-button"
+onclick="openCustomerLocation(
+${latitude},
+${longitude}
+)"
+>
+
+🗺️ Google Maps में Location देखें
+
+</button>
+
+</div>
+
+`;
+
+}else{
+
+locationHTML=`
+
+<div class="location-box">
+
+<b>📍 Customer Location</b>
+
+<br>
+
+⚪ Customer ने Current Location नहीं भेजी।
+
+</div>
+
+`;
+
+}
+
+
+/* ================================
+   DELIVERY ACTION
+================================ */
+
+let actionHTML="";
+
+
+if(status==="Delivered"){
+
+actionHTML=`
+
+<div class="delivery-actions">
+
+<button
+class="green"
+disabled
+style="opacity:0.7"
+>
+
+✅ Delivery Complete हो चुकी है
+
+</button>
+
+</div>
+
+`;
+
+}else if(status==="Cancelled"){
+
+actionHTML=`
+
+<div class="delivery-actions">
+
+<button
+class="red"
+disabled
+style="opacity:0.7"
+>
+
+❌ Order Cancelled है
+
+</button>
+
+</div>
+
+`;
+
+}else{
+
+actionHTML=`
+
+<div class="delivery-actions">
+
+<b>
+📦 Delivery Complete करें
+</b>
+
+<button
+class="green"
+onclick="completeDelivery(
+'${escapeJS(order._firestoreDocId||order.id||"")}'
+)"
+>
+
+✅ कलेक्ट / Delivery Complete
+
+</button>
+
+
+<div class="notification-note">
+
+🔔 यह बटन दबाने पर Order Delivered होगा
+और Admin Panel में Delivery Notification बन जाएगी।
+
+</div>
+
+</div>
+
+`;
+
+}
+
+
+/* ================================
+   ORDER
+================================ */
+
+return `
+
+<div class="order">
+
+
+<div class="order-id">
+
+Order ID:
+${escapeHTML(
+order.id||"नहीं है"
+)}
+
+</div>
+
+
+<h3>
+
+👤
+${escapeHTML(
+order.customerName||
+order.name||
+"Customer"
+)}
+
+</h3>
+
+
+<div class="info">
+
+📞
+${escapeHTML(
+order.phone||
+"नहीं है"
+)}
+
+<br>
+
+📍
+${escapeHTML(
+order.address||
+"नहीं है"
+)}
+
+<br>
+
+📅
+${escapeHTML(dateText)}
+
+</div>
+
+
+${locationHTML}
+
+
+<div class="items">
+
+${itemsHTML}
+
+</div>
+
+
+<div class="total">
+
+कुल:
+₹${total.toFixed(2)}
+
+</div>
+
+
+<div class="order-status">
+
+वर्तमान Status:
+${escapeHTML(status)}
+
+</div>
+
+
+${actionHTML}
+
+
+</div>
+
+`;
+
+}
+
+
+/* ================================
+   CUSTOMER LOCATION
+================================ */
+
+function openCustomerLocation(
+latitude,
+longitude
+){
+
+const lat=
+Number(latitude);
+
+const lng=
+Number(longitude);
+
+
+if(
+!Number.isFinite(lat)||
+!Number.isFinite(lng)
+){
+
+showMessage(
+"❌ Customer की Location सही नहीं मिली।",
+true
+);
+
+return;
+
+}
+
+
+const mapUrl=
+"https://www.google.com/maps?q="+
+encodeURIComponent(
+lat+","+lng
+);
+
+
+window.open(
+mapUrl,
+"_blank"
+);
+
+}
+
+
+/* ================================
+   COMPLETE DELIVERY
+================================ */
+
+async function completeDelivery(orderDocId){
+
+if(!orderDocId){
+
+showMessage(
+"❌ Order ID नहीं मिला।",
+true
+);
+
+return;
+
+}
+
+
+if(
+!firebaseReady||
+!db||
+!auth.currentUser
+){
+
+showMessage(
+"🔐 पहले Delivery Login करें।",
+true
+);
+
+return;
+
+}
+
+
+const ok=
+window.confirm(
+"क्या Customer को सामान दे दिया गया है और Delivery Complete करनी है?"
+);
+
+
+if(!ok)return;
+
+
+try{
+
+const docRef=
+db.collection("orders")
+.doc(orderDocId);
+
+
+const snapshot=
+await docRef.get();
+
+
+if(!snapshot.exists){
+
+showMessage(
+"❌ Order नहीं मिला।",
+true
+);
+
+return;
+
+}
+
+
+const order=
+snapshot.data()||{};
+
+
+const assignedEmail=
+String(
+order.assignedToEmail||""
+).toLowerCase();
+
+
+const currentEmail=
+String(
+auth.currentUser.email||""
+).toLowerCase();
+
+
+if(
+!assignedEmail||
+assignedEmail!==currentEmail
+){
+
+showMessage(
+"❌ यह Order आपके नाम पर Assign नहीं है।",
+true
+);
+
+return;
+
+}
+
+
+if(order.status==="Delivered"){
+
+showMessage(
+"ℹ️ यह Order पहले ही Delivered हो चुका है।"
+);
+
+return;
+
+}
+
+
+if(order.status==="Cancelled"){
+
+showMessage(
+"❌ यह Order पहले ही Cancelled है।",
+true
+);
+
+return;
+
+}
+
+
+/* ================================
+   DELIVERY DATA
+================================ */
+
+const now=
+new Date().toISOString();
+
+
+const deliveryBoyEmail=
+auth.currentUser.email||"";
+
+
+const updateData={
+
+status:"Delivered",
+
+deliveredAt:now,
+
+deliveredBy:
+auth.currentUser.uid||"",
+
+deliveredByEmail:
+deliveryBoyEmail
+
+};
+
+
+await docRef.update(
+updateData
+);
+
+
+/* ================================
+   ADMIN NOTIFICATION REQUEST
+================================ */
+
+await db
+.collection("notificationRequests")
+.add({
+
+type:
+"delivery_completed",
+
+orderId:
+order.id||orderDocId,
+
+customerName:
+order.customerName||
+order.name||
+"Customer",
+
+customerPhone:
+order.phone||
+"",
+
+deliveryBoyEmail:
+deliveryBoyEmail,
+
+status:
+"pending",
+
+createdAt:
+now,
+
+message:
+"Delivery Complete: "+
+(order.id||orderDocId)
+
+});
+
+
+showMessage(
+"🟢 Delivery Complete हो गई। Admin को Notification भेज दी गई।"
+);
+
+
+await loadOrders();
+
+
+}catch(error){
+
+console.error(
+"Complete Delivery Error:",
+error
+);
+
+showMessage(
+"🔴 Delivery Complete नहीं हुई। Firebase Rules जाँचें।",
+true
+);
+
+}
+
+}
+
+
+/* ================================
+   AUTH STATE
+================================ */
+
+if(firebaseReady&&auth){
+
+auth.onAuthStateChanged(
+function(user){
+
+if(user){
+
+showDeliveryPanel(user);
+
+}else{
+
+showLoginPage();
+
+}
+
+}
+);
+
+}else{
+
+showLoginPage();
+
+}
+
+
+/* ================================
+   FOREGROUND MESSAGE LISTENER
+================================ */
+
+setupForegroundNotifications();
+
+
+</script>
+
+</body>
+</html>

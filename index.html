@@ -1,0 +1,2261 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>VT Dairy Farm</title>
+
+<link rel="manifest" href="./manifest.json">
+
+<meta name="theme-color" content="#087a45">
+
+<style>
+
+*{
+box-sizing:border-box;
+margin:0;
+padding:0;
+font-family:Arial,sans-serif;
+}
+
+body{
+background:#f4f7f5;
+color:#222;
+padding-bottom:30px;
+}
+
+header{
+background:#087a45;
+color:white;
+padding:22px 15px;
+text-align:center;
+}
+
+header h1{
+font-size:25px;
+}
+
+header p{
+margin-top:6px;
+}
+
+.container{
+width:94%;
+max-width:700px;
+margin:18px auto;
+}
+
+.card{
+background:white;
+border-radius:14px;
+padding:17px;
+margin-bottom:15px;
+box-shadow:0 2px 8px #0001;
+}
+
+.card h2{
+margin-bottom:12px;
+}
+
+.firebase-status{
+background:#e8f1ff;
+color:#24518a;
+border-left:5px solid #2878c8;
+padding:13px;
+border-radius:9px;
+margin-bottom:15px;
+line-height:1.6;
+}
+
+.notification-box{
+background:#eef7ff;
+color:#24518a;
+border-left:5px solid #2878c8;
+padding:13px;
+border-radius:9px;
+margin-bottom:15px;
+line-height:1.6;
+}
+
+.payment-box{
+background:#f0f8f2;
+border-left:5px solid #087a45;
+padding:13px;
+border-radius:9px;
+margin-top:15px;
+line-height:1.6;
+}
+
+.payment-option{
+display:flex;
+align-items:center;
+gap:10px;
+background:white;
+border:2px solid #087a45;
+border-radius:10px;
+padding:13px;
+margin-top:10px;
+font-weight:bold;
+}
+
+.payment-option input{
+width:auto;
+margin:0;
+}
+
+.payment-note{
+font-size:13px;
+color:#555;
+margin-top:7px;
+}
+
+label{
+display:block;
+margin-top:10px;
+font-weight:bold;
+}
+
+input,
+textarea{
+width:100%;
+padding:13px;
+margin-top:6px;
+border:1px solid #ccc;
+border-radius:8px;
+font-size:16px;
+}
+
+textarea{
+min-height:90px;
+resize:vertical;
+}
+
+button{
+width:100%;
+border:0;
+color:white;
+padding:13px;
+border-radius:8px;
+font-size:15px;
+font-weight:bold;
+margin-top:8px;
+cursor:pointer;
+}
+
+.green{
+background:#087a45;
+}
+
+.blue{
+background:#2878c8;
+}
+
+.red{
+background:#d9534f;
+}
+
+.message{
+display:none;
+padding:13px;
+border-radius:9px;
+background:#e7f7ed;
+color:#126b35;
+margin-bottom:15px;
+font-weight:bold;
+text-align:center;
+line-height:1.5;
+}
+
+.message.error{
+background:#ffe5e5;
+color:#a33;
+}
+
+.product{
+border:1px solid #ddd;
+border-radius:12px;
+padding:15px;
+margin-bottom:12px;
+}
+
+.product-name{
+font-size:20px;
+font-weight:bold;
+}
+
+.product-rate{
+color:#087a45;
+font-weight:bold;
+margin-top:5px;
+}
+
+.qty-row{
+display:flex;
+gap:8px;
+align-items:center;
+margin-top:10px;
+}
+
+.qty-row input{
+margin-top:0;
+text-align:center;
+}
+
+.cart-item{
+display:flex;
+justify-content:space-between;
+gap:10px;
+padding:9px 0;
+border-bottom:1px solid #eee;
+}
+
+.live-total-box{
+background:#e7f7ed;
+border:2px solid #087a45;
+color:#087a45;
+padding:16px;
+border-radius:12px;
+margin-top:15px;
+text-align:center;
+}
+
+.live-total-title{
+font-size:16px;
+font-weight:bold;
+margin-bottom:5px;
+}
+
+.live-total-amount{
+font-size:28px;
+font-weight:bold;
+}
+
+.order{
+border:1px solid #e1e1e1;
+border-radius:10px;
+padding:13px;
+margin-top:12px;
+background:#fff;
+}
+
+.order-id{
+background:#f4f7f5;
+padding:9px;
+border-radius:8px;
+margin-bottom:10px;
+font-weight:bold;
+word-break:break-all;
+}
+
+.info{
+color:#555;
+line-height:1.7;
+font-size:14px;
+}
+
+.order-status{
+display:block;
+padding:9px;
+border-radius:7px;
+background:#fff3cd;
+color:#856404;
+margin-top:10px;
+font-weight:bold;
+text-align:center;
+}
+
+.order-total-box{
+background:#e7f7ed;
+border:1px solid #b7e4c7;
+color:#087a45;
+padding:13px;
+border-radius:9px;
+margin-top:12px;
+text-align:center;
+font-size:21px;
+font-weight:bold;
+}
+
+.order-payment-box{
+background:#f0f8f2;
+border-left:5px solid #087a45;
+color:#126b35;
+padding:11px;
+border-radius:8px;
+margin-top:10px;
+font-weight:bold;
+}
+
+.location-box{
+background:#f0f8f2;
+color:#126b35;
+border-left:5px solid #168a45;
+padding:12px;
+border-radius:9px;
+margin-top:12px;
+line-height:1.6;
+}
+
+.empty{
+text-align:center;
+color:#777;
+padding:18px 10px;
+}
+
+.order-list-title{
+font-weight:bold;
+color:#087a45;
+margin-bottom:10px;
+}
+
+.cancel-box{
+margin-top:12px;
+padding-top:12px;
+border-top:1px solid #eee;
+}
+
+.cancel-note{
+background:#fff3cd;
+color:#856404;
+padding:10px;
+border-radius:8px;
+font-size:13px;
+line-height:1.5;
+margin-bottom:8px;
+}
+
+.my-orders-button{
+margin-top:0;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<h1>🥛 VT Dairy Farm</h1>
+
+<p>ताजा दूध और Dairy Products</p>
+
+</header>
+
+<div class="container">
+
+<div id="firebaseStatus" class="firebase-status">
+🔄 Firebase Database से कनेक्शन जाँच रहा है...
+</div>
+
+
+<!-- CUSTOMER NOTIFICATIONS -->
+
+<div class="notification-box">
+
+<b>🔔 Customer Notifications</b>
+
+<br>
+
+Order की जरूरी जानकारी पाने के लिए Notifications चालू करें।
+
+<button
+class="blue"
+onclick="enableNotifications()"
+>
+
+🔔 Notifications चालू करें
+
+</button>
+
+<div
+id="notificationStatus"
+style="margin-top:8px;font-size:14px"
+>
+
+Notifications बंद हैं।
+
+</div>
+
+</div>
+
+
+<!-- PRODUCTS -->
+
+<div class="card">
+
+<h2>🥛 Products</h2>
+
+<div id="products">
+
+<div class="empty">
+🔄 Products लोड हो रहे हैं...
+</div>
+
+</div>
+
+
+<div class="live-total-box">
+
+<div class="live-total-title">
+💰 आपका Total Bill
+</div>
+
+<div id="liveTotal" class="live-total-amount">
+₹0.00
+</div>
+
+<div style="margin-top:5px;font-size:13px;color:#555">
+Quantity बदलते ही Total Bill अपने-आप बदलेगा।
+</div>
+
+</div>
+
+</div>
+
+
+<!-- CUSTOMER DETAILS -->
+
+<div class="card">
+
+<h2>📝 Customer Details</h2>
+
+<label>नाम</label>
+
+<input
+type="text"
+id="customerName"
+placeholder="अपना नाम डालें"
+>
+
+<label>मोबाइल नंबर</label>
+
+<input
+type="tel"
+id="phone"
+inputmode="numeric"
+maxlength="10"
+placeholder="10 अंकों का मोबाइल नंबर"
+>
+
+<label>पता</label>
+
+<textarea
+id="address"
+placeholder="पूरा पता डालें"
+></textarea>
+
+
+<button
+class="blue"
+onclick="getCustomerLocation()"
+>
+
+📍 Current Location लें
+
+</button>
+
+
+<div
+id="locationStatus"
+class="location-box"
+style="display:none"
+>
+</div>
+
+
+<!-- PAYMENT METHOD -->
+
+<div class="payment-box">
+
+<b>💳 Payment Method</b>
+
+<div class="payment-option">
+
+<input
+type="radio"
+id="cashPayment"
+name="paymentMethod"
+value="Cash"
+checked
+>
+
+<label
+for="cashPayment"
+style="margin:0"
+>
+
+💵 Cash Payment / Delivery पर Cash दें
+
+</label>
+
+</div>
+
+<div class="payment-note">
+
+अभी केवल Cash Payment उपलब्ध है।
+Delivery के समय Delivery Boy को Cash दें।
+
+</div>
+
+</div>
+
+
+<button
+class="green"
+onclick="placeOrder()"
+>
+
+🛒 Order करें
+
+</button>
+
+</div>
+
+
+<div id="message" class="message"></div>
+
+
+<!-- MY ORDERS -->
+
+<div class="card">
+
+<h2>📦 My Orders</h2>
+
+<div class="order-list-title">
+
+अपने इस फोन से किए गए Orders देखें।
+
+</div>
+
+<button
+class="blue my-orders-button"
+onclick="showMyOrders()"
+>
+
+📦 My Orders देखें
+
+</button>
+
+<div id="myOrders">
+
+<div class="empty">
+
+📦 “My Orders देखें” दबाकर अपने Orders देखें।
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- FIREBASE -->
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+
+
+<script>
+
+const firebaseConfig={
+
+apiKey:
+"AIzaSyD9cwaW54d5VRfK6rbuqSExcz27bFHdSm8",
+
+authDomain:
+"vt-dairy-farm-9afc8.firebaseapp.com",
+
+projectId:
+"vt-dairy-farm-9afc8",
+
+storageBucket:
+"vt-dairy-farm-9afc8.firebasestorage.app",
+
+messagingSenderId:
+"86012601125",
+
+appId:
+"1:86012601125:web:6a6d81f5d93aae16a030cc"
+
+};
+
+
+let db=null;
+
+let auth=null;
+
+let messaging=null;
+
+let firebaseReady=false;
+
+let messagingReady=false;
+
+let customerAuthReady=false;
+
+let currentCustomerUid=null;
+
+
+const VAPID_KEY=
+"BKNYUkxK4_hpL870JUGLhmEV9G9VMrLYikpR9wFVFocwDo8nZAYtqVT6BscJ9hhjfdcxCmcYJ1UrkeTZiNKuv_c";
+
+
+try{
+
+firebase.initializeApp(firebaseConfig);
+
+db=firebase.firestore();
+
+auth=firebase.auth();
+
+firebaseReady=true;
+
+
+try{
+
+messaging=firebase.messaging();
+
+messagingReady=true;
+
+}catch(error){
+
+console.error(
+"Messaging Init Error:",
+error
+);
+
+messagingReady=false;
+
+}
+
+}catch(error){
+
+console.error(
+"Firebase Init Error:",
+error
+);
+
+firebaseReady=false;
+
+}
+
+
+/* CUSTOMER DEVICE AUTH */
+
+async function initCustomerAuth(){
+
+if(!auth){
+
+return false;
+
+}
+
+try{
+
+if(auth.currentUser){
+
+currentCustomerUid=
+auth.currentUser.uid;
+
+customerAuthReady=true;
+
+return true;
+
+}
+
+
+const result=
+await auth.signInAnonymously();
+
+
+currentCustomerUid=
+result.user.uid;
+
+customerAuthReady=true;
+
+return true;
+
+}catch(error){
+
+console.error(
+"Anonymous Auth Error:",
+error
+);
+
+customerAuthReady=false;
+
+currentCustomerUid=null;
+
+return false;
+
+}
+
+}
+
+
+let products=[];
+
+let customerLatitude=null;
+
+let customerLongitude=null;
+
+let locationAccuracy=null;
+
+
+const defaultProducts=[
+
+{
+id:"milk",
+name:"दूध",
+price:80,
+unit:"लीटर",
+active:true
+},
+
+{
+id:"ghee",
+name:"घी",
+price:0,
+unit:"किलो",
+active:false
+},
+
+{
+id:"paneer",
+name:"पनीर",
+price:0,
+unit:"किलो",
+active:false
+},
+
+{
+id:"mawa",
+name:"मावा",
+price:0,
+unit:"किलो",
+active:false
+}
+
+];
+
+
+function escapeHTML(value){
+
+return String(value??"")
+
+.replace(/&/g,"&amp;")
+
+.replace(/</g,"&lt;")
+
+.replace(/>/g,"&gt;")
+
+.replace(/"/g,"&quot;")
+
+.replace(/'/g,"&#039;");
+
+}
+
+
+function showMessage(
+text,
+isError=false
+){
+
+const box=
+document.getElementById("message");
+
+if(!box)return;
+
+box.textContent=text;
+
+box.className=
+isError
+?
+"message error"
+:
+"message";
+
+box.style.display="block";
+
+clearTimeout(
+window.messageTimer
+);
+
+window.messageTimer=
+setTimeout(function(){
+
+box.style.display="none";
+
+},5000);
+
+}
+
+
+function updateFirebaseStatus(){
+
+const box=
+document.getElementById(
+"firebaseStatus"
+);
+
+if(!box)return;
+
+if(firebaseReady){
+
+box.innerHTML=
+"🟢 Firebase Database जुड़ा हुआ है।";
+
+}else{
+
+box.innerHTML=
+"🔴 Firebase Database से कनेक्शन नहीं हुआ।";
+
+}
+
+}
+
+
+async function loadProducts(){
+
+const box=
+document.getElementById("products");
+
+if(!box)return;
+
+box.innerHTML=
+'<div class="empty">🔄 Products लोड हो रहे हैं...</div>';
+
+
+if(firebaseReady&&db){
+
+try{
+
+const snapshot=
+await db
+.collection("products")
+.get();
+
+
+products=[];
+
+
+snapshot.forEach(function(doc){
+
+const data=
+doc.data()||{};
+
+
+if(data.active===true){
+
+products.push({
+
+id:data.id||doc.id,
+
+name:data.name||"Product",
+
+price:Number(data.price||0),
+
+unit:data.unit||""
+
+});
+
+}
+
+});
+
+
+}catch(error){
+
+console.error(
+"Products Error:",
+error
+);
+
+}
+
+}
+
+
+if(!products.length){
+
+products=
+defaultProducts
+.filter(function(product){
+
+return product.active===true;
+
+})
+.map(function(product){
+
+return {...product};
+
+});
+
+}
+
+
+renderProducts();
+
+}
+
+
+function renderProducts(){
+
+const box=
+document.getElementById("products");
+
+box.innerHTML="";
+
+
+if(!products.length){
+
+box.innerHTML=
+'<div class="empty">❌ अभी कोई Product चालू नहीं है।</div>';
+
+return;
+
+}
+
+
+products.forEach(function(product){
+
+const div=
+document.createElement("div");
+
+div.className="product";
+
+
+div.innerHTML=`
+
+<div class="product-name">
+${escapeHTML(product.name)}
+</div>
+
+<div class="product-rate">
+₹${Number(product.price).toFixed(2)}
+/
+${escapeHTML(product.unit)}
+</div>
+
+<div class="qty-row">
+
+<input
+type="number"
+id="qty_${escapeHTML(product.id)}"
+min="0"
+step="0.5"
+value="0"
+placeholder="Quantity"
+oninput="updateLiveTotal()"
+onchange="updateLiveTotal()"
+>
+
+<span>
+${escapeHTML(product.unit)}
+</span>
+
+</div>
+
+`;
+
+
+box.appendChild(div);
+
+});
+
+
+updateLiveTotal();
+
+}
+
+
+function getSelectedProducts(){
+
+const items=[];
+
+products.forEach(function(product){
+
+const input=
+document.getElementById(
+"qty_"+product.id
+);
+
+if(!input)return;
+
+
+const qty=
+Number(input.value);
+
+
+if(
+Number.isFinite(qty)&&
+qty>0
+){
+
+items.push({
+
+id:product.id,
+
+name:product.name,
+
+price:Number(product.price),
+
+unit:product.unit,
+
+qty:qty
+
+});
+
+}
+
+});
+
+
+return items;
+
+}
+
+
+function calculateCurrentTotal(){
+
+let total=0;
+
+
+products.forEach(function(product){
+
+const input=
+document.getElementById(
+"qty_"+product.id
+);
+
+if(!input)return;
+
+
+const qty=
+Number(input.value);
+
+
+if(
+Number.isFinite(qty)&&
+qty>0
+){
+
+total+=
+Number(product.price||0)*
+qty;
+
+}
+
+});
+
+
+return total;
+
+}
+
+
+function updateLiveTotal(){
+
+const total=
+calculateCurrentTotal();
+
+
+const box=
+document.getElementById(
+"liveTotal"
+);
+
+
+if(box){
+
+box.textContent=
+"₹"+
+total.toFixed(2);
+
+}
+
+}
+
+
+function generateOrderId(){
+
+return "VT"+
+Date.now().toString(36).toUpperCase()+
+Math.random()
+.toString(36)
+.substring(2,7)
+.toUpperCase();
+
+}
+
+
+function validPhone(phone){
+
+return /^[0-9]{10}$/.test(phone);
+
+}
+
+
+function getCustomerLocation(){
+
+if(!navigator.geolocation){
+
+showMessage(
+"❌ आपके फोन में Location सुविधा उपलब्ध नहीं है।",
+true
+);
+
+return;
+
+}
+
+
+const box=
+document.getElementById(
+"locationStatus"
+);
+
+
+box.style.display="block";
+
+box.innerHTML=
+"📍 Current Location ली जा रही है...";
+
+
+navigator.geolocation.getCurrentPosition(
+
+function(position){
+
+customerLatitude=
+position.coords.latitude;
+
+customerLongitude=
+position.coords.longitude;
+
+locationAccuracy=
+position.coords.accuracy;
+
+
+box.innerHTML=
+
+"<b>🟢 Current Location मिल गई।</b>"+
+"<br>Latitude: "+
+escapeHTML(customerLatitude)+
+"<br>Longitude: "+
+escapeHTML(customerLongitude)+
+"<br>Accuracy: लगभग "+
+escapeHTML(
+Math.round(locationAccuracy)
+)+
+" मीटर";
+
+},
+
+function(error){
+
+console.error(
+"Location Error:",
+error
+);
+
+customerLatitude=null;
+
+customerLongitude=null;
+
+locationAccuracy=null;
+
+
+box.innerHTML=
+"🔴 Location नहीं मिली। आप बिना Location के भी Order कर सकते हैं।";
+
+},
+
+{
+
+enableHighAccuracy:true,
+
+timeout:15000,
+
+maximumAge:0
+
+}
+
+);
+
+
+}
+
+
+async function placeOrder(){
+
+if(!firebaseReady||!db){
+
+showMessage(
+"❌ Firebase उपलब्ध नहीं है।",
+true
+);
+
+return;
+
+}
+
+
+if(!customerAuthReady){
+
+const ready=
+await initCustomerAuth();
+
+if(!ready){
+
+showMessage(
+"❌ Customer Security शुरू नहीं हो पाई। कृपया Page दोबारा खोलें।",
+true
+);
+
+return;
+
+}
+
+}
+
+
+const name=
+document
+.getElementById("customerName")
+.value
+.trim();
+
+
+const phone=
+document
+.getElementById("phone")
+.value
+.trim();
+
+
+const address=
+document
+.getElementById("address")
+.value
+.trim();
+
+
+if(!name){
+
+showMessage(
+"❌ अपना नाम डालें।",
+true
+);
+
+return;
+
+}
+
+
+if(!validPhone(phone)){
+
+showMessage(
+"❌ सही 10 अंकों का मोबाइल नंबर डालें।",
+true
+);
+
+return;
+
+}
+
+
+if(!address){
+
+showMessage(
+"❌ अपना पूरा पता डालें।",
+true
+);
+
+return;
+
+}
+
+
+const items=
+getSelectedProducts();
+
+
+if(!items.length){
+
+showMessage(
+"❌ कम से कम एक Product की Quantity डालें।",
+true
+);
+
+return;
+
+}
+
+
+/* PAYMENT METHOD */
+
+const paymentMethod="Cash";
+
+
+let total=0;
+
+
+items.forEach(function(item){
+
+total+=
+Number(item.price||0)*
+Number(item.qty||0);
+
+});
+
+
+const orderId=
+generateOrderId();
+
+
+const createdAt=
+new Date().toISOString();
+
+
+const order={
+
+id:orderId,
+
+ownerUid:currentCustomerUid,
+
+customerName:name,
+
+phone:phone,
+
+address:address,
+
+items:items,
+
+total:total,
+
+status:"Pending",
+
+paymentMethod:paymentMethod,
+
+paymentStatus:"Pending",
+
+createdAt:createdAt,
+
+latitude:
+customerLatitude,
+
+longitude:
+customerLongitude,
+
+locationAccuracy:
+locationAccuracy,
+
+locationUrl:
+(
+customerLatitude!==null&&
+customerLongitude!==null
+)
+?
+"https://www.google.com/maps?q="+
+encodeURIComponent(
+customerLatitude+
+","+
+customerLongitude
+)
+:
+""
+
+};
+
+
+try{
+
+await db
+.collection("orders")
+.doc(orderId)
+.set(order);
+
+
+showMessage(
+"🟢 Cash Payment वाला Order Successfully हो गया। Order ID: "+
+orderId
+);
+
+
+clearOrderForm();
+
+await showMyOrders();
+
+}catch(error){
+
+console.error(
+"Firebase Order Error:",
+error
+);
+
+showMessage(
+"🔴 Order Save नहीं हुआ। Firebase Rules जाँचें।",
+true
+);
+
+}
+
+}
+
+
+function clearOrderForm(){
+
+document
+.getElementById("customerName")
+.value="";
+
+document
+.getElementById("phone")
+.value="";
+
+document
+.getElementById("address")
+.value="";
+
+
+products.forEach(function(product){
+
+const input=
+document.getElementById(
+"qty_"+product.id
+);
+
+if(input){
+
+input.value="0";
+
+}
+
+});
+
+
+updateLiveTotal();
+
+
+customerLatitude=null;
+
+customerLongitude=null;
+
+locationAccuracy=null;
+
+
+const locationBox=
+document.getElementById(
+"locationStatus"
+);
+
+if(locationBox){
+
+locationBox.style.display="none";
+
+}
+
+}
+
+
+/* GET ONLY THIS DEVICE'S ORDERS */
+
+async function getMyFirebaseOrders(){
+
+if(
+!firebaseReady||
+!db||
+!customerAuthReady||
+!currentCustomerUid
+){
+
+return [];
+
+}
+
+
+try{
+
+const snapshot=
+await db
+.collection("orders")
+.where(
+"ownerUid",
+"==",
+currentCustomerUid
+)
+.get();
+
+
+const orders=[];
+
+
+snapshot.forEach(function(doc){
+
+const data=
+doc.data()||{};
+
+
+orders.push({
+
+...data,
+
+id:data.id||doc.id,
+
+_firestoreDocId:doc.id
+
+});
+
+});
+
+
+orders.sort(function(a,b){
+
+return String(
+b.createdAt||""
+)
+.localeCompare(
+String(
+a.createdAt||""
+)
+);
+
+});
+
+
+return orders;
+
+}catch(error){
+
+console.error(
+"My Orders Error:",
+error
+);
+
+return [];
+
+}
+
+}
+
+
+/* CUSTOMER CANCEL ORDER */
+
+async function cancelCustomerOrder(orderDocId){
+
+if(!orderDocId){
+
+showMessage(
+"❌ Order ID नहीं मिला।",
+true
+);
+
+return;
+
+}
+
+
+if(
+!firebaseReady||
+!db||
+!customerAuthReady||
+!currentCustomerUid
+){
+
+showMessage(
+"❌ Customer Security उपलब्ध नहीं है।",
+true
+);
+
+return;
+
+}
+
+
+const ok=
+window.confirm(
+"क्या आप यह Order Cancel करना चाहते हैं?"
+);
+
+
+if(!ok)return;
+
+
+try{
+
+const docRef=
+db
+.collection("orders")
+.doc(orderDocId);
+
+
+const snapshot=
+await docRef.get();
+
+
+if(!snapshot.exists){
+
+showMessage(
+"❌ Order नहीं मिला।",
+true
+);
+
+return;
+
+}
+
+
+const order=
+snapshot.data()||{};
+
+
+/* EXTRA DEVICE CHECK */
+
+if(
+order.ownerUid!==currentCustomerUid
+){
+
+showMessage(
+"❌ यह Order इस फोन का नहीं है।",
+true
+);
+
+return;
+
+}
+
+
+const currentStatus=
+String(
+order.status||"Pending"
+);
+
+
+if(
+currentStatus==="Delivered"
+){
+
+showMessage(
+"❌ Delivered Order को Cancel नहीं किया जा सकता।",
+true
+);
+
+return;
+
+}
+
+
+if(
+currentStatus==="Cancelled"
+){
+
+showMessage(
+"ℹ️ यह Order पहले ही Cancelled है।"
+);
+
+return;
+
+}
+
+
+const now=
+new Date().toISOString();
+
+
+await docRef.update({
+
+status:"Cancelled",
+
+cancelledAt:now,
+
+cancelledBy:"customer"
+
+});
+
+
+/*
+ DELIVERY BOY NOTIFICATION REQUEST
+*/
+
+try{
+
+await db
+.collection("notificationRequests")
+.add({
+
+type:"order_cancelled",
+
+orderId:
+order.id||orderDocId,
+
+customerName:
+order.customerName||
+"Customer",
+
+customerPhone:
+order.phone||
+"",
+
+deliveryBoyEmail:
+order.assignedToEmail||
+"",
+
+customerUid:
+currentCustomerUid,
+
+status:"pending",
+
+createdAt:now,
+
+message:
+"Order Cancelled: "+
+(order.id||orderDocId)
+
+});
+
+}catch(notificationError){
+
+console.error(
+"Cancellation Notification Error:",
+notificationError
+);
+
+}
+
+
+showMessage(
+"🟢 आपका Order Cancel हो गया है।"
+);
+
+
+await showMyOrders();
+
+
+}catch(error){
+
+console.error(
+"Cancel Order Error:",
+error
+);
+
+showMessage(
+"🔴 Order Cancel नहीं हुआ। Firebase Rules जाँचें।",
+true
+);
+
+}
+
+}
+
+
+/* SHOW MY ORDERS */
+
+async function showMyOrders(){
+
+const box=
+document.getElementById(
+"myOrders"
+);
+
+
+if(!customerAuthReady){
+
+const ready=
+await initCustomerAuth();
+
+if(!ready){
+
+box.innerHTML=
+'<div class="empty">🔴 Customer Security शुरू नहीं हो पाई।</div>';
+
+return;
+
+}
+
+}
+
+
+box.innerHTML=
+'<div class="empty">🔄 आपके Orders लोड हो रहे हैं...</div>';
+
+
+const orders=
+await getMyFirebaseOrders();
+
+
+if(!orders.length){
+
+box.innerHTML=
+'<div class="empty">📦 इस फोन से अभी कोई Order नहीं किया गया है।</div>';
+
+return;
+
+}
+
+
+box.innerHTML="";
+
+
+orders.forEach(function(order){
+
+box.innerHTML+=
+createOrderHTML(order);
+
+});
+
+}
+
+
+/* ORDER HTML */
+
+function createOrderHTML(order){
+
+let itemsHTML="";
+
+
+if(Array.isArray(order.items)){
+
+order.items.forEach(function(item){
+
+const qty=
+item.qty ??
+item.quantity ??
+1;
+
+
+const amount=
+Number(item.price||0)*
+Number(qty||0);
+
+
+itemsHTML+=`
+
+<div class="cart-item">
+
+<span>
+
+${escapeHTML(
+item.name||"Product"
+)}
+
+×
+
+${escapeHTML(qty)}
+
+${escapeHTML(
+item.unit||""
+)}
+
+</span>
+
+
+<span>
+
+₹${amount.toFixed(2)}
+
+</span>
+
+</div>
+
+`;
+
+});
+
+}
+
+
+const total=
+Number(order.total)||
+Number(order.order_total)||
+0;
+
+
+const status=
+order.status||
+"Pending";
+
+
+const dateText=
+order.createdAt
+?
+new Date(
+order.createdAt
+).toLocaleString("hi-IN")
+:
+(order.date||"नहीं है");
+
+
+let locationHTML="";
+
+
+const latitude=
+Number(order.latitude);
+
+const longitude=
+Number(order.longitude);
+
+
+if(
+
+Number.isFinite(latitude)&&
+Number.isFinite(longitude)&&
+latitude>=-90&&
+latitude<=90&&
+longitude>=-180&&
+longitude<=180
+
+){
+
+locationHTML=`
+
+<div class="location-box">
+
+📍 Location Order के साथ Save है।
+
+<button
+class="blue"
+onclick="openLocation(
+${latitude},
+${longitude}
+)"
+>
+
+🗺️ Location देखें
+
+</button>
+
+</div>
+
+`;
+
+}
+
+
+/* CANCEL BUTTON */
+
+let cancelHTML="";
+
+
+if(
+status==="Pending"||
+status==="Confirmed"
+){
+
+cancelHTML=`
+
+<div class="cancel-box">
+
+<div class="cancel-note">
+
+⚠️ अगर आप यह Order नहीं चाहते हैं, तो आप इसे यहाँ से Cancel कर सकते हैं।
+
+</div>
+
+<button
+class="red"
+onclick="cancelCustomerOrder(
+'${escapeHTML(
+order._firestoreDocId||
+order.id||
+""
+)}'
+)"
+>
+
+❌ Order Cancel करें
+
+</button>
+
+</div>
+
+`;
+
+}
+
+
+return `
+
+<div class="order">
+
+<div class="order-id">
+
+Order ID:
+${escapeHTML(
+order.id||""
+)}
+
+</div>
+
+<div class="info">
+
+👤
+${escapeHTML(
+order.customerName||
+"Customer"
+)}
+
+<br>
+
+📞
+${escapeHTML(
+order.phone||
+""
+)}
+
+<br>
+
+📍
+${escapeHTML(
+order.address||
+""
+)}
+
+<br>
+
+📅
+${escapeHTML(dateText)}
+
+</div>
+
+<div class="items">
+
+${itemsHTML}
+
+</div>
+
+<div class="order-total-box">
+
+💰 Total Bill:
+₹${total.toFixed(2)}
+
+</div>
+
+<div class="order-payment-box">
+
+💵 Payment:
+Cash Payment / Delivery पर Cash
+
+</div>
+
+<div class="order-status">
+
+वर्तमान Status:
+${escapeHTML(status)}
+
+</div>
+
+${cancelHTML}
+
+${locationHTML}
+
+</div>
+
+`;
+
+}
+
+
+function openLocation(
+latitude,
+longitude
+){
+
+const url=
+"https://www.google.com/maps?q="+
+encodeURIComponent(
+latitude+
+","+
+longitude
+);
+
+window.open(
+url,
+"_blank"
+);
+
+}
+
+
+/* CUSTOMER NOTIFICATIONS */
+
+async function enableNotifications(){
+
+const statusBox=
+document.getElementById(
+"notificationStatus"
+);
+
+
+if(!("Notification" in window)){
+
+statusBox.textContent=
+"❌ इस Browser में Notifications उपलब्ध नहीं हैं।";
+
+return;
+
+}
+
+
+if(!messagingReady){
+
+statusBox.textContent=
+"❌ Firebase Notifications उपलब्ध नहीं हैं।";
+
+return;
+
+}
+
+
+try{
+
+statusBox.textContent=
+"🔄 Notifications चालू की जा रही हैं...";
+
+
+const permission=
+await Notification.requestPermission();
+
+
+if(permission!=="granted"){
+
+statusBox.textContent=
+"🔕 Notification Permission नहीं मिली।";
+
+return;
+
+}
+
+
+const registration=
+await navigator
+.serviceWorker
+.register(
+"./firebase-messaging-sw.js"
+);
+
+
+await navigator
+.serviceWorker
+.ready;
+
+
+const token=
+await messaging.getToken({
+
+vapidKey:
+VAPID_KEY,
+
+serviceWorkerRegistration:
+registration
+
+});
+
+
+if(!token){
+
+statusBox.textContent=
+"❌ Notification Token नहीं मिला।";
+
+return;
+
+}
+
+
+localStorage.setItem(
+"vtDairyNotificationToken",
+token
+);
+
+
+if(firebaseReady&&db){
+
+await db
+.collection("notificationTokens")
+.doc(token)
+.set({
+
+token:token,
+
+type:"customer",
+
+createdAt:
+new Date().toISOString(),
+
+updatedAt:
+new Date().toISOString()
+
+},{
+merge:true
+});
+
+}
+
+
+statusBox.textContent=
+"🟢 Customer Notifications चालू हैं।";
+
+
+messaging.onMessage(
+function(payload){
+
+console.log(
+"Customer Notification:",
+payload
+);
+
+
+const title=
+payload?.notification?.title||
+"VT Dairy Farm";
+
+
+const body=
+payload?.notification?.body||
+"नई Order जानकारी उपलब्ध है।";
+
+
+statusBox.textContent=
+"🔔 "+
+title+
+": "+
+body;
+
+});
+
+}catch(error){
+
+console.error(
+"Notification Error:",
+error
+);
+
+
+statusBox.textContent=
+"❌ Notifications चालू नहीं हो पाईं।";
+
+}
+
+}
+
+
+/* START */
+
+updateFirebaseStatus();
+
+loadProducts();
+
+initCustomerAuth();
+
+</script>
+
+</body>
+  </html>

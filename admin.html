@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#087a45">
+<title>VT Dairy Farm Admin Panel</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#f1f5f2;
+  color:#222;
+}
+header{
+  background:#087a45;
+  color:white;
+  padding:18px 12px;
+  text-align:center;
+}
+header h2{margin:0 0 6px}
+.container{max-width:1000px;margin:auto;padding:12px}
+.card{
+  background:white;
+  padding:15px;
+  border-radius:12px;
+  margin:12px 0;
+  box-shadow:0 2px 8px #00000012;
+}
+h3{margin-top:0;color:#087a45}
+input,select,button{
+  width:100%;
+  padding:12px;
+  margin:6px 0;
+  border:1px solid #ccc;
+  border-radius:7px;
+  font-size:16px;
+}
+button{
+  background:#087a45;
+  color:white;
+  border:0;
+  font-weight:bold;
+  cursor:pointer;
+}
+button.secondary{background:#555}
+button.danger{background:#c62828}
+button.warning{background:#e58a00}
+button:disabled{opacity:.6}
+.hidden{display:none!important}
+.msg{
+  padding:12px;
+  margin:10px 0;
+  border-radius:8px;
+  overflow-wrap:anywhere;
+}
+.error{background:#ffebee;color:#b71c1c}
+.success{background:#e8f5e9;color:#1b5e20}
+.info{background:#e3f2fd;color:#0d47a1}
+.order{
+  border:1px solid #ddd;
+  padding:12px;
+  margin:12px 0;
+  border-radius:10px;
+  background:#fff;
+  overflow-wrap:anywhere;
+}
+.order h4{margin:0 0 8px;color:#087a45}
+.order p{margin:6px 0;line-height:1.5}
+.row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.badge{
+  display:inline-block;
+  padding:5px 9px;
+  border-radius:20px;
+  background:#e8f5e9;
+  margin:3px 0;
+}
+.money{font-size:20px;font-weight:bold;color:#087a45}
+hr{border:0;border-top:1px solid #eee;margin:14px 0}
+@media(max-width:480px){
+  .row{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>🥛 VT Dairy Farm</h2>
+  <div>Admin Panel</div>
+</header>
+
+<div class="container">
+
+  <div id="firebaseStatus" class="msg info">
+    Firebase कनेक्शन जाँचा जा रहा है...
+  </div>
+
+  <div id="loginSection" class="card">
+    <h3>Admin Login</h3>
+    <input id="adminEmail" type="email"
+      placeholder="Admin Email"
+      autocomplete="username">
+    <input id="adminPassword" type="password"
+      placeholder="Password"
+      autocomplete="current-password">
+    <button id="loginBtn" onclick="adminLogin()">Login</button>
+    <div id="loginMessage"></div>
+  </div>
+
+  <div id="dashboard" class="hidden">
+
+    <div class="card">
+      <h3>Admin Account</h3>
+      <div id="loggedInEmail"></div>
+      <button class="danger" onclick="adminLogout()">Logout</button>
+    </div>
+
+    <div class="card">
+      <h3>1. Online Orders</h3>
+      <p>यहाँ Firebase में सेव हुए ऑनलाइन ऑर्डर दिखाई देंगे।</p>
+      <button onclick="loadOrders()">ऑर्डर Refresh करें</button>
+      <div id="ordersMessage"></div>
+      <div id="ordersList"></div>
+    </div>
+
+    <div class="card">
+      <h3>2. Products & Rates</h3>
+
+      <input id="productId" type="hidden">
+
+      <label>Product Name</label>
+      <input id="productName" placeholder="जैसे दूध">
+
+      <label>Rate (₹)</label>
+      <input id="productRate" type="number" min="0" step="0.01"
+        placeholder="80">
+
+      <label>Unit</label>
+      <select id="productUnit">
+        <option value="लीटर">लीटर</option>
+        <option value="किलो">किलो</option>
+      </select>
+
+      <label>स्थिति</label>
+      <select id="productActive">
+        <option value="true">Active</option>
+        <option value="false">Inactive</option>
+      </select>
+
+      <button onclick="saveProduct()">Product Save करें</button>
+      <button class="secondary" onclick="resetProductForm()">नया Product</button>
+
+      <div id="productsMessage"></div>
+      <div id="productsList"></div>
+    </div>
+
+    <div class="card">
+      <h3>3. Delivery Assignment</h3>
+      <p>किसी ऑर्डर को खोलकर उसका Delivery Email डालें।</p>
+      <div id="assignmentMessage"></div>
+    </div>
+
+    <div class="card">
+      <h3>4. Delivery Notifications</h3>
+      <button onclick="loadNotifications()">Notifications Refresh करें</button>
+      <div id="notificationsMessage"></div>
+      <div id="notificationsList"></div>
+    </div>
+
+    <div class="card">
+      <h3>5. Sales & Business Report</h3>
+      <button onclick="loadSalesReport()">Report Refresh करें</button>
+      <div id="reportMessage"></div>
+      <div id="reportList"></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+/* IMPORTANT:
+   apiKey और appId में अपनी पुरानी admin.html के
+   Firebase Configuration वाले असली मान डालें।
+*/
+const firebaseConfig = {
+  apiKey: "अपना_असली_API_KEY_यहाँ_डालें",
+  authDomain: "vt-dairy-farm-9afc8.firebaseapp.com",
+  projectId: "vt-dairy-farm-9afc8",
+  storageBucket: "vt-dairy-farm-9afc8.firebasestorage.app",
+  messagingSenderId: "509749630555",
+  appId: "अपना_असली_APP_ID_यहाँ_डालें"
+};
+
+const ADMIN_EMAIL = "vtdairyfarm2025@gmail.com";
+
+let auth = null;
+let db = null;
+let currentUser = null;
+let allOrders = [];
+let allProducts = [];
+
+function showMessage(id, text, type="info") {
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  el.className = "msg " + type;
+  el.textContent = text;
+}
+
+function errorText(error) {
+  return (error && error.code ? error.code + ": " : "") +
+    (error && error.message ? error.message : String(error));
+}
+
+function safe(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#39;"
+  })[ch]);
+}
+
+function money(value) {
+  return "₹" + Number(value || 0).toLocaleString("en-IN", {
+    maximumFractionDigits: 2
+  });
+}
+
+function formatDate(value) {
+  if (!value) return "उपलब्ध नहीं";
+
+  try {
+    if (value.toDate) return value.toDate().toLocaleString("en-IN");
+
+    if (typeof value === "number") {
+      return new Date(value).toLocaleString("en-IN");
+    }
+
+    if (typeof value === "string") return value;
+
+    return new Date(value).toLocaleString("en-IN");
+  } catch (_) {
+    return String(value);
+  }
+}
+
+/* Firebase Initialization */
+try {
+  if (
+    firebaseConfig.apiKey.startsWith("अपना_") ||
+    firebaseConfig.appId.startsWith("अपना_")
+  ) {
+    showMessage(
+      "firebaseStatus",
+      "Firebase Configuration अधूरी है। apiKey और appId में पुराने असली मान डालें।",
+      "error"
+    );
+  } else {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+
+    auth = firebase.auth();
+    db = firebase.firestore();
+
+    showMessage(
+      "firebaseStatus",
+      "Firebase SDK शुरू हो गया है। Firestore की अनुमति ऑर्डर लोड करके जाँची जाएगी।",
+      "success"
+    );
+
+    auth.onAuthStateChanged(async user => {
+      currentUser = user || null;
+
+      if (!user) {
+        document.getElementById("loginSection").classList.remove("hidden");
+        document.getElementById("dashboard").classList.add("hidden");
+        return;
+      }
+
+      if (user.email !== ADMIN_EMAIL) {
+        await auth.signOut();
+
+        showMessage(
+          "loginMessage",
+          "यह Admin Email नहीं है। सही Admin Email से Login करें।",
+          "error"
+        );
+        return;
+      }
+
+      document.getElementById("loginSection").classList.add("hidden");
+      document.getElementById("dashboard").classList.remove("hidden");
+      document.getElementById("loggedInEmail").textContent = user.email;
+
+      loadOrders();
+      loadProducts();
+      loadNotifications();
+      loadSalesReport();
+    });
+  }
+} catch (error) {
+  showMessage("firebaseStatus", errorText(error), "error");
+}
+
+/* Admin Login */
+async function adminLogin() {
+  if (!auth) {
+    showMessage("loginMessage", "Firebase Configuration ठीक करें।", "error");
+    return;
+  }
+
+  const email = document.getElementById("adminEmail").value.trim();
+  const password = document.getElementById("adminPassword").value;
+
+  if (!email || !password) {
+    showMessage("loginMessage", "Email और Password भरें।", "error");
+    return;
+  }
+
+  if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    showMessage("loginMessage", "Admin Email सही नहीं है।", "error");
+    return;
+  }
+
+  try {
+    showMessage("loginMessage", "Login हो रहा है...");
+    await auth.signInWithEmailAndPassword(email, password);
+  } catch (error) {
+    showMessage("loginMessage", errorText(error), "error");
+  }
+}
+
+async function adminLogout() {
+  if (!auth) return;
+
+  try {
+    await auth.signOut();
+  } catch (error) {
+    showMessage("firebaseStatus", errorText(error), "error");
+  }
+}
+
+/* Firebase Orders
+   मुख्य सुधार: Error को खाली Orders की तरह नहीं दिखाना।
+*/
+async function fetchFirebaseOrders() {
+  try {
+    const snapshot = await db.collection("orders").get();
+
+    const orders = snapshot.docs.map(doc => ({
+      ...doc.data(),
+      _docId: doc.id
+    }));
+
+    orders.sort((a, b) => {
+      const getTime = o => {
+        const v = o.createdAt;
+
+        if (v && typeof v.toMillis === "function") return v.toMillis();
+        if (typeof v === "number") return v;
+
+        const d = new Date(v || o.date || 0).getTime();
+        return Number.isNaN(d) ? 0 : d;
+      };
+
+      return getTime(b) - getTime(a);
+    });
+
+    return { ok: true, orders };
+  } catch (error) {
+    return { ok: false, error };
+  }
+}
+
+async function loadOrders() {
+  const list = document.getElementById("ordersList");
+  list.innerHTML = "";
+
+  showMessage("ordersMessage", "Firebase से ऑनलाइन ऑर्डर लोड हो रहे हैं...");
+
+  if (!db || !currentUser) {
+    showMessage("ordersMessage", "पहले Admin Login करें।", "error");
+    return;
+  }
+
+  const result = await fetchFirebaseOrders();
+
+  if (!result.ok) {
+    showMessage(
+      "ordersMessage",
+      "ऑनलाइन ऑर्डर लोड नहीं हुए। असली Firebase Error: " +
+        errorText(result.error),
+      "error"
+    );
+    return;
+  }
+
+  allOrders = result.orders;
+
+  if (allOrders.length === 0) {
+    showMessage(
+      "ordersMessage",
+      "Firebase के orders कलेक्शन में अभी कोई ऑनलाइन ऑर्डर नहीं मिला। यह खाली कलेक्शन है, कोई लोडिंग Error नहीं।",
+      "info"
+    );
+    return;
+  }
+
+  showMessage(
+    "ordersMessage",
+    "Firebase से " + allOrders.length + " ऑनलाइन ऑर्डर मिले।",
+    "success"
+  );
+
+  list.innerHTML = allOrders.map(createOrderHTML).join("");
+}
+
+function createOrderHTML(order) {
+  const id = order._docId;
+  const orderNumber = order.id || id;
+  const items = Array.isArray(order.items) ? order.items : [];
+
+  const itemsHTML = items.length
+    ? items.map(item =>
+        `<div>${safe(item.name || item.productName || "Product")} ×
+        ${safe(item.quantity ?? item.qty ?? 0)}
+        ${safe(item.unit || "")}
+        — ${money(item.subtotal ?? item.total ??
+          (Number(item.price || 0) * Number(item.quantity ?? item.qty ?? 0)))}
+        </div>`
+      ).join("")
+    : "Items उपलब्ध नहीं हैं";
+
+  const status = order.status || "Pending";
+
+  const mapURL = order.mapUrl ||
+    (order.latitude != null && order.longitude != null
+      ? "https://www.google.com/maps?q=" +
+        encodeURIComponent(order.latitude + "," + order.longitude)
+      : "");
+
+  return `
+    <div class="order">
+      <h4>Order: ${safe(orderNumber)}</h4>
+      <span class="badge">Status: ${safe(status)}</span>
+
+      <p><b>Customer:</b> ${safe(order.customerName || "—")}</p>
+      <p><b>Phone:</b> ${safe(order.phone || "—")}</p>
+      <p><b>Address:</b> ${safe(order.address || "—")}</p>
+      <p><b>Date:</b> ${safe(formatDate(order.createdAt || order.date))}</p>
+
+      <hr>
+      <b>Items:</b>
+      <div>${itemsHTML}</div>
+
+      <p class="money">Total Bill: ${money(order.total)}</p>
+      <p><b>Payment:</b> ${safe(order.paymentMethod || "—")}</p>
+      <p><b>Assigned Delivery:</b> ${safe(order.assignedToEmail || "अभी Assign नहीं")}</p>
+
+      ${mapURL ? `<p><a href="${safe(mapURL)}" target="_blank" rel="noopener">Customer Location खोलें</a></p>` : ""}
+
+      <hr>
+
+      <label>Delivery Boy Email</label>
+      <input id="delivery_${safe(id)}"
+        type="email"
+        value="${safe(order.assignedToEmail || "")}"
+        placeholder="delivery1@vtdairyfarm.com">
+
+      <button onclick="assignDelivery('${safe(id)}')">
+        Delivery Assign / Update
+      </button>
+
+      <label>Order Status</label>
+      <select id="status_${safe(id)}">
+        ${["Pending","Confirmed","Delivered","Cancelled"].map(s =>
+          `<option value="${s}" ${status === s ? "selected" : ""}>${s}</option>`
+        ).join("")}
+      </select>
+
+      <button onclick="updateOrderStatus('${safe(id)}')">
+        Status Save करें
+      </button>
+
+      <div id="orderMessage_${safe(id)}"></div>
+    </div>
+  `;
+}
+
+async function assignDelivery(docId) {
+  if (!db || !currentUser) return;
+
+  const input = document.getElementById("delivery_" + docId);
+  const email = input.value.trim().toLowerCase();
+
+  if (!email || !email.includes("@")) {
+    showOrderMessage(docId, "सही Delivery Email भरें।", "error");
+    return;
+  }
+
+  try {
+    await db.collection("orders").doc(docId).update({
+      assignedToEmail: email,
+      assignedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    showOrderMessage(docId, "Delivery Boy Assign हो गया।", "success");
+    await loadOrders();
+  } catch (error) {
+    showOrderMessage(
+      docId,
+      "Assignment सेव नहीं हुआ: " + errorText(error),
+      "error"
+    );
+  }
+}
+
+async function updateOrderStatus(docId) {
+  if (!db || !currentUser) return;
+
+  const select = document.getElementById("status_" + docId);
+  const status = select.value;
+
+  try {
+    const updateData = {
+      status,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    await db.collection("orders").doc(docId).update(updateData);
+
+    showOrderMessage(docId, "Order Status सेव हो गया।", "success");
+    await loadOrders();
+    await loadSalesReport();
+  } catch (error) {
+    showOrderMessage(
+      docId,
+      "Status सेव नहीं हुआ: " + errorText(error),
+      "error"
+    );
+  }
+}
+
+function showOrderMessage(docId, message, type) {
+  showMessage("orderMessage_" + docId, message, type);
+}
+
+/* Products & Rates */
+async function loadProducts() {
+  const list = document.getElementById("productsList");
+  list.innerHTML = "";
+
+  showMessage("productsMessage", "Products लोड हो रहे हैं...");
+
+  try {
+    const snapshot = await db.collection("products").get();
+
+    allProducts = snapshot.docs.map(doc => ({
+      ...doc.data(),
+      _docId: doc.id
+    }));
+
+    if (!allProducts.length) {
+      showMessage(
+        "productsMessage",
+        "Firebase में कोई Product नहीं मिला। कोई Default Product अपने आप नहीं बनाया गया।",
+        "info"
+      );
+      return;
+    }
+
+    showMessage(
+      "productsMessage",
+      allProducts.length + " Products लोड हुए।",
+      "success"
+    );
+
+    list.innerHTML = allProducts.map(p => `
+      <div class="order">
+        <b>${safe(p.name || p.productName || p._docId)}</b>
+        <p>Rate: ${money(p.price ?? p.rate)} / ${safe(p.unit || "")}</p>
+        <p>Status: ${p.active === false ? "Inactive" : "Active"}</p>
+
+        <button onclick="editProduct('${safe(p._docId)}')">
+          Edit Product
+        </button>
+
+        <button class="secondary"
+          onclick="toggleProduct('${safe(p._docId)}',${p.active === false ? "true" : "false"})">
+          ${p.active === false ? "Activate" : "Deactivate"}
+        </button>
+      </div>
+    `).join("");
+
+  } catch (error) {
+    showMessage(
+      "productsMessage",
+      "Products लोड नहीं हुए: " + errorText(error),
+      "error"
+    );
+  }
+}
+
+function editProduct(id) {
+  const p = allProducts.find(x => x._docId === id);
+  if (!p) return;
+
+  document.getElementById("productId").value = id;
+  document.getElementById("productName").value = p.name || p.productName || "";
+  document.getElementById("productRate").value = p.price ?? p.rate ?? 0;
+  document.getElementById("productUnit").value = p.unit || "लीटर";
+  document.getElementById("productActive").value =
+    p.active === false ? "false" : "true";
+
+  document.getElementById("productName").scrollIntoView({
+    behavior: "smooth",
+    block: "center"
+  });
+}
+
+function resetProductForm() {
+  document.getElementById("productId").value = "";
+  document.getElementById("productName").value = "";
+  document.getElementById("productRate").value = "";
+  document.getElementById("productUnit").value = "लीटर";
+  document.getElementById("productActive").value = "true";
+}
+
+async function saveProduct() {
+  const id = document.getElementById("productId").value;
+  const name = document.getElementById("productName").value.trim();
+  const price = Number(document.getElementById("productRate").value);
+  const unit = document.getElementById("productUnit").value;
+  const active = document.getElementById("productActive").value === "true";
+
+  if (!name || !Number.isFinite(price) || price < 0) {
+    showMessage(
+      "productsMessage",
+      "Product Name और सही Rate भरें।",
+      "error"
+    );
+    return;
+  }
+
+  try {
+    const data = {
+      name,
+      price,
+      unit,
+      active,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    if (id) {
+      await db.collection("products").doc(id).update(data);
+    } else {
+      const productId = name.toLowerCase().replace(/\s+/g, "_");
+      await db.collection("products").doc(productId).set(data);
+    }
+
+    showMessage("productsMessage", "Product सेव हो गया।", "success");
+    resetProductForm();
+    await loadProducts();
+
+  } catch (error) {
+    showMessage(
+      "productsMessage",
+      "Product सेव नहीं हुआ: " + errorText(error),
+      "error"
+    );
+  }
+}
+
+async function toggleProduct(id, active) {
+  try {
+    await db.collection("products").doc(id).update({
+      active,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    await loadProducts();
+  } catch (error) {
+    showMessage(
+      "productsMessage",
+      "Product Status नहीं बदला: " + errorText(error),
+      "error"
+    );
+  }
+}
+
+/* Delivery Notifications */
+async function loadNotifications() {
+  const list = document.getElementById("notificationsList");
+  list.innerHTML = "";
+
+  if (!db || !currentUser) return;
+
+  showMessage("notificationsMessage", "Notifications लोड हो रही हैं...");
+
+  try {
+    const snapshot = await db.collection("notificationRequests").get();
+
+    if (snapshot.empty) {
+      showMessage(
+        "notificationsMessage",
+        "अभी कोई Notification Request नहीं मिली।",
+        "info"
+      );
+      return;
+    }
+
+    const rows = snapshot.docs.map(doc => ({
+      ...doc.data(),
+      _docId: doc.id
+    }));
+
+    list.innerHTML = rows.map(n => `
+      <div class="order">
+        <p><b>Type:</b> ${safe(n.type || "—")}</p>
+        <p><b>Order ID:</b> ${safe(n.orderId || "—")}</p>
+        <p><b>Time:</b> ${safe(formatDate(n.createdAt || n.timestamp))}</p>
+      </div>
+    `).join("");
+
+    showMessage(
+      "notificationsMessage",
+      rows.length + " Notification Requests मिलीं।",
+      "success"
+    );
+
+  } catch (error) {
+    showMessage(
+      "notificationsMessage",
+      "Notifications लोड नहीं हुईं: " + errorText(error),
+      "error"
+    );
+  }
+}
+
+/* Sales Report: Firebase Orders only */
+async function loadSalesReport() {
+  const list = document.getElementById("reportList");
+  list.innerHTML = "";
+
+  if (!db || !currentUser) return;
+
+  showMessage("reportMessage", "Sales Report लोड हो रही है...");
+
+  const result = await fetchFirebaseOrders();
+
+  if (!result.ok) {
+    showMessage(
+      "reportMessage",
+      "Report के लिए Orders लोड नहीं हुए: " + errorText(result.error),
+      "error"
+    );
+    return;
+  }
+
+  const orders = result.orders;
+  const today = new Date();
+
+  const isToday = order => {
+    let date;
+
+    if (order.createdAt && typeof order.createdAt.toDate === "function") {
+      date = order.createdAt.toDate();
+    } else if (order.createdAt) {
+      date = new Date(order.createdAt);
+    } else {
+      date = new Date(order.date || "");
+    }
+
+    if (Number.isNaN(date.getTime())) return false;
+
+    return date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() === today.getDate();
+  };
+
+  const delivered = orders.filter(o => o.status === "Delivered");
+  const cancelled = orders.filter(o => o.status === "Cancelled");
+  const pending = orders.filter(o => o.status === "Pending");
+  const confirmed = orders.filter(o => o.status === "Confirmed");
+  const todayOrders = orders.filter(isToday);
+  const todayDelivered = todayOrders.filter(o => o.status === "Delivered");
+
+  const sum = rows => rows.reduce((total, o) =>
+    total + Number(o.total || 0), 0);
+
+  list.innerHTML = `
+    <div class="order">
+      <p>आज के Orders: <b>${todayOrders.length}</b></p>
+      <p>आज Delivered Orders: <b>${todayDelivered.length}</b></p>
+      <p>आज की Delivered Sales:
+        <b class="money">${money(sum(todayDelivered))}</b>
+      </p>
+      <hr>
+      <p>कुल Delivered Orders: <b>${delivered.length}</b></p>
+      <p>कुल Delivered Sales:
+        <b class="money">${money(sum(delivered))}</b>
+      </p>
+      <hr>
+      <p>Cancelled Orders: <b>${cancelled.length}</b></p>
+      <p>Pending Orders: <b>${pending.length}</b></p>
+      <p>Confirmed Orders: <b>${confirmed.length}</b></p>
+      <p>कुल Firebase Orders: <b>${orders.length}</b></p>
+    </div>
+  `;
+
+  showMessage("reportMessage", "Sales Report अपडेट हो गई।", "success");
+}
+</script>
+
+</body>
+</html>

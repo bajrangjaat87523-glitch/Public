@@ -1,0 +1,448 @@
+<!DOCTYPE html><html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#087a45">
+<link rel="manifest" href="./delivery-manifest.json">
+<title>Delivery Boy Panel</title><style>
+*{box-sizing:border-box}
+body{
+  margin:0;padding:14px;font-family:Arial,sans-serif;
+  background:#f1f6f2;color:#173629
+}
+header{
+  background:#087a45;color:white;padding:20px;
+  border-radius:14px;margin-bottom:15px
+}
+h1{font-size:23px;margin:0 0 8px}
+h2{font-size:20px}
+.card{
+  background:white;padding:16px;border-radius:12px;
+  margin-bottom:14px;box-shadow:0 2px 8px #0001;
+  overflow-wrap:anywhere
+}
+input,button{
+  width:100%;padding:13px;margin-top:10px;
+  border-radius:8px;font-size:16px
+}
+input{border:1px solid #bbb}
+button{
+  border:0;background:#087a45;color:white;
+  font-weight:bold;cursor:pointer
+}
+button:disabled{opacity:.55;cursor:not-allowed}
+.secondary{background:#455a64}
+.error{color:#b00020;white-space:pre-wrap}
+.status{font-weight:bold;color:#087a45}
+.cancelled{color:#b00020}
+.small{font-size:13px;color:#555}
+.hidden{display:none!important}
+a{color:#087a45;font-weight:bold}
+.order-title{overflow-wrap:anywhere}
+</style></head><body><header>
+  <h1>🚚 Delivery Boy Panel</h1>
+  <p>डिलीवरी ऑर्डर और ग्राहक की लोकेशन</p>
+</header><section class="card" id="loginBox">
+  <h2>डिलीवरी लॉगिन</h2>
+  <form id="loginForm">
+    <input id="email" type="email"
+      placeholder="Delivery Email" autocomplete="username" required>
+    <input id="password" type="password"
+      placeholder="Password" autocomplete="current-password" required>
+    <button id="loginBtn" type="submit">Login करें</button>
+  </form>
+  <p id="loginMessage" class="error" role="alert"></p>
+</section><section id="panel" class="hidden">
+  <div class="card">
+    <h2>मेरे ऑर्डर</h2>
+    <p id="signedIn" class="small"></p>
+    <button id="refreshBtn">ऑर्डर Refresh करें</button>
+    <button id="logoutBtn" class="secondary">Logout</button>
+    <p id="message" class="error" role="status"></p>
+  </div>
+  <div id="orders"></div>
+</section><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script><script>
+"use strict";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD9cwaW54d5VRfK6rbuqSExcz27bFHdSm8",
+  authDomain: "vt-dairy-farm-9afc8.firebaseapp.com",
+  projectId: "vt-dairy-farm-9afc8",
+  storageBucket: "vt-dairy-farm-9afc8.firebasestorage.app",
+  messagingSenderId: "86012601125",
+  appId: "1:86012601125:web:6a6d81f5d93aae16a030cc"
+};
+
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+const $ = id => document.getElementById(id);
+
+let currentUser = null;
+let loading = false;
+let authReady = false;
+
+function safe(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#39;"
+  }[c]));
+}
+
+function normalizedEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function orderDate(value) {
+  if (!value) return 0;
+
+  if (typeof value.toMillis === "function") {
+    return value.toMillis();
+  }
+
+  if (typeof value.toDate === "function") {
+    return value.toDate().getTime();
+  }
+
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  if (typeof value === "number") {
+    return value;
+  }
+
+  const parsed = Date.parse(String(value));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatDate(value) {
+  const timestamp = orderDate(value);
+  if (!timestamp) return "उपलब्ध नहीं";
+
+  try {
+    return new Date(timestamp).toLocaleString("hi-IN");
+  } catch (_) {
+    return "उपलब्ध नहीं";
+  }
+}
+
+function displayStatus(value) {
+  const status = String(value || "Pending").trim();
+  const lower = status.toLowerCase();
+
+  if (lower === "cancelled" || lower === "canceled") {
+    return "Cancel";
+  }
+
+  if (lower === "delivered") return "Delivered";
+  if (lower === "confirmed") return "Confirmed";
+  if (lower === "pending") return "Pending";
+
+  return status;
+}
+
+function isCancelled(status) {
+  const value = String(status || "").trim().toLowerCase();
+  return value === "cancelled" || value === "canceled";
+}
+
+function isDelivered(status) {
+  return String(status || "").trim().toLowerCase() === "delivered";
+}
+
+$("loginForm").addEventListener("submit", async event => {
+  event.preventDefault();
+
+  if (!authReady) {
+    $("loginMessage").textContent =
+      "Firebase तैयार हो रहा है। कृपया दोबारा कोशिश करें।";
+    return;
+  }
+
+  const button = $("loginBtn");
+  button.disabled = true;
+  $("loginMessage").textContent = "लॉगिन हो रहा है...";
+
+  try {
+    await auth.signInWithEmailAndPassword(
+      $("email").value.trim(),
+      $("password").value
+    );
+
+    $("loginMessage").textContent = "";
+  } catch (error) {
+    $("loginMessage").textContent =
+      "लॉगिन नहीं हुआ: " + error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
+
+auth.onAuthStateChanged(async user => {
+  currentUser = user;
+
+  $("loginBox").classList.toggle("hidden", !!user);
+  $("panel").classList.toggle("hidden", !user);
+
+  if (user) {
+    $("signedIn").textContent = "लॉगिन: " + (user.email || "");
+    await loadOrders();
+  } else {
+    $("orders").innerHTML = "";
+    $("message").textContent = "";
+    $("signedIn").textContent = "";
+  }
+});
+
+authReady = true;
+
+$("logoutBtn").addEventListener("click", async () => {
+  try {
+    await auth.signOut();
+  } catch (error) {
+    $("message").textContent = "Logout नहीं हुआ: " + error.message;
+  }
+});
+
+$("refreshBtn").addEventListener("click", loadOrders);
+
+async function loadOrders() {
+  if (!currentUser || loading) return;
+
+  loading = true;
+  $("refreshBtn").disabled = true;
+  $("message").textContent = "";
+  $("orders").innerHTML =
+    '<div class="card">ऑर्डर लोड हो रहे हैं...</div>';
+
+  try {
+    const email = normalizedEmail(currentUser.email);
+
+    if (!email) {
+      throw new Error("लॉगिन अकाउंट में ईमेल उपलब्ध नहीं है।");
+    }
+
+    /*
+      Firestore Rules assignedToEmail की जाँच करती हैं।
+      इसलिए क्वेरी में लॉगिन अकाउंट का वास्तविक ईमेल इस्तेमाल होता है।
+    */
+    const snapshot = await db.collection("orders")
+      .where("assignedToEmail", "==", currentUser.email)
+      .get();
+
+    const docs = snapshot.docs.filter(doc => {
+      const order = doc.data();
+      return normalizedEmail(order.assignedToEmail) === email;
+    });
+
+    docs.sort((a, b) =>
+      orderDate(b.data().createdAt) -
+      orderDate(a.data().createdAt)
+    );
+
+    if (!docs.length) {
+      $("orders").innerHTML =
+        '<div class="card">' +
+        'अभी आपके ईमेल पर कोई ऑर्डर असाइन नहीं है।' +
+        '<br><br>एडमिन से ऑर्डर असाइन करवाएँ और Refresh करें।' +
+        '</div>';
+      return;
+    }
+
+    $("orders").innerHTML = docs.map(renderOrder).join("");
+
+  } catch (error) {
+    $("orders").innerHTML =
+      '<div class="card error">' +
+      '<b>ऑर्डर लोड नहीं हुए।</b><br>' +
+      safe(error.message) +
+      '<br><br>Firebase Rules, लॉगिन ईमेल और assignedToEmail की जाँच जरूरी है।' +
+      '</div>';
+  } finally {
+    loading = false;
+    $("refreshBtn").disabled = false;
+  }
+}
+
+function renderOrder(doc) {
+  const order = doc.data();
+  const status = String(order.status || "Pending").trim();
+
+  const cancelled = isCancelled(status);
+  const delivered = isDelivered(status);
+  const finished = cancelled || delivered;
+
+  const shownStatus = displayStatus(status);
+  const statusClass = cancelled ? "status cancelled" : "status";
+
+  let items = "विवरण उपलब्ध नहीं";
+
+  if (Array.isArray(order.items)) {
+    items = order.items.map(item => {
+      const name = safe(item.name || item.productName || "सामान");
+      const quantity = safe(item.quantity ?? item.qty ?? 1);
+      const unit = item.unit ? " " + safe(item.unit) : "";
+      return name + " × " + quantity + unit;
+    }).join("<br>");
+  } else if (typeof order.items === "string") {
+    items = safe(order.items);
+  }
+
+  const latitude = order.latitude;
+  const longitude = order.longitude;
+
+  const hasLocation =
+    latitude !== undefined && latitude !== null &&
+    longitude !== undefined && longitude !== null &&
+    latitude !== "" && longitude !== "" &&
+    Number.isFinite(Number(latitude)) &&
+    Number.isFinite(Number(longitude)) &&
+    Number(latitude) >= -90 && Number(latitude) <= 90 &&
+    Number(longitude) >= -180 && Number(longitude) <= 180;
+
+  const mapUrl = hasLocation
+    ? "https://www.google.com/maps?q=" +
+      encodeURIComponent(Number(latitude) + "," + Number(longitude))
+    : "";
+
+  const deliveryButton = !finished
+    ? '<button type="button" class="completeBtn" data-order-id="' +
+      safe(doc.id) + '">डिलीवरी पूरी करें</button>'
+    : "";
+
+  return `
+    <div class="card">
+      <h3 class="order-title">ऑर्डर: ${safe(order.id || doc.id)}</h3>
+      <p><b>ग्राहक:</b> ${safe(order.customerName || order.name || "—")}</p>
+      <p><b>फोन:</b> ${safe(order.phone || "—")}</p>
+      <p><b>पता:</b> ${safe(order.address || "—")}</p>
+      <p><b>सामान:</b><br>${items}</p>
+      <p><b>रकम:</b> ₹${safe(order.total ?? 0)}</p>
+      <p><b>भुगतान:</b> ${safe(order.paymentMethod || "Cash")}</p>
+      <p><b>ऑर्डर समय:</b> ${safe(formatDate(order.createdAt))}</p>
+      <p><b>स्थिति:</b>
+        <span class="${statusClass}">${safe(shownStatus)}</span>
+      </p>
+      ${mapUrl
+        ? `<p><a href="${mapUrl}" target="_blank" rel="noopener noreferrer">📍 ग्राहक की लोकेशन खोलें</a></p>`
+        : '<p class="small">ग्राहक की GPS लोकेशन उपलब्ध नहीं है।</p>'}
+      ${deliveryButton}
+    </div>
+  `;
+}
+
+/*
+  बटन पर event delegation इस्तेमाल किया गया है,
+  ताकि ऑर्डर ID को inline JavaScript में डालने की जरूरत न पड़े।
+*/
+$("orders").addEventListener("click", async event => {
+  const button = event.target.closest(".completeBtn");
+  if (!button) return;
+
+  const docId = button.dataset.orderId;
+  if (!docId) return;
+
+  await completeDelivery(docId, button);
+});
+
+async function completeDelivery(docId, button) {
+  if (!currentUser) return;
+
+  if (!confirm("क्या यह ऑर्डर ग्राहक को दे दिया गया है?")) {
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "अपडेट हो रहा है...";
+
+  let deliveredOrderId = "";
+
+  try {
+    const ref = db.collection("orders").doc(docId);
+    const currentEmail = normalizedEmail(currentUser.email);
+
+    await db.runTransaction(async transaction => {
+      const snapshot = await transaction.get(ref);
+
+      if (!snapshot.exists) {
+        throw new Error("ऑर्डर नहीं मिला।");
+      }
+
+      const order = snapshot.data();
+      const assignedEmail = normalizedEmail(order.assignedToEmail);
+
+      if (!currentEmail || assignedEmail !== currentEmail) {
+        throw new Error("यह ऑर्डर आपके ईमेल पर असाइन नहीं है।");
+      }
+
+      if (isCancelled(order.status)) {
+        throw new Error("यह ऑर्डर Cancel हो चुका है।");
+      }
+
+      if (isDelivered(order.status)) {
+        throw new Error("यह ऑर्डर पहले ही Delivered हो चुका है।");
+      }
+
+      transaction.update(ref, {
+        status: "Delivered",
+        deliveredAt: firebase.firestore.FieldValue.serverTimestamp(),
+        deliveredByEmail: currentUser.email
+      });
+
+      deliveredOrderId = docId;
+    });
+
+  } catch (error) {
+    $("message").textContent = "डिलीवरी अपडेट नहीं हुई: " + error.message;
+    button.disabled = false;
+    button.textContent = "डिलीवरी पूरी करें";
+    return;
+  }
+
+  /*
+    Firestore Rules के अनुसार notificationRequests में
+    delivery_completed बनाने से पहले ऑर्डर Delivered होना चाहिए।
+    इसलिए सूचना का रिकॉर्ड ऑर्डर अपडेट के बाद बनाया जाता है।
+  */
+  let notificationRecorded = false;
+
+  try {
+    await db.collection("notificationRequests").add({
+      type: "delivery_completed",
+      orderId: deliveredOrderId,
+      deliveryBoyEmail: currentUser.email,
+      message: "डिलीवरी पूरी हो गई।",
+      status: "pending",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    notificationRecorded = true;
+
+  } catch (error) {
+    console.error("Admin notification request failed:", error);
+  }
+
+  $("message").textContent = notificationRecorded
+    ? "डिलीवरी पूरी हो गई। एडमिन के लिए सूचना रिकॉर्ड दर्ज हो गया।"
+    : "डिलीवरी पूरी हो गई, लेकिन एडमिन सूचना रिकॉर्ड नहीं हुआ। Firebase Rules जाँचें।";
+
+  await loadOrders();
+}
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .catch(error => {
+        console.warn("Delivery service worker registration failed:", error);
+      });
+  });
+}
+</script></body>
+</html>

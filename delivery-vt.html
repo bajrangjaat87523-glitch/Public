@@ -1,0 +1,359 @@
+<!DOCTYPE html><html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#087a45">
+<meta name="description" content="Delivery Boy VT - Assigned Delivery Orders">
+<title>Delivery Boy VT</title><style>
+*{box-sizing:border-box;font-family:Arial,sans-serif}
+body{margin:0;padding:14px;background:#f1f6f2;color:#173629}
+header{background:#087a45;color:white;padding:20px;border-radius:14px;margin-bottom:15px}
+header h1{font-size:24px;margin:0 0 8px}
+header p{margin:0}
+.card{background:white;padding:16px;border-radius:12px;margin-bottom:14px;box-shadow:0 2px 8px #0001;overflow-wrap:anywhere}
+h2{font-size:20px;margin:0 0 12px}
+h3{margin:0 0 12px;overflow-wrap:anywhere}
+input,button{width:100%;padding:13px;margin-top:10px;border-radius:8px;font-size:16px}
+input{border:1px solid #bbb}
+button{border:0;background:#087a45;color:white;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.55;cursor:not-allowed}
+.secondary{background:#455a64}
+.blue{background:#2878c8}
+.error{color:#b00020;white-space:pre-wrap;overflow-wrap:anywhere}
+.success{color:#087a45;white-space:pre-wrap;overflow-wrap:anywhere}
+.status{display:inline-block;padding:7px 12px;border-radius:7px;background:#e8f5e9;color:#087a45;font-weight:bold}
+.cancelled{background:#ffe5e5;color:#b00020}
+.delivered{background:#e8f5e9;color:#087a45}
+.small{font-size:13px;color:#555;line-height:1.6}
+.hidden{display:none!important}
+a{color:#087a45;font-weight:bold}
+.info{line-height:1.8;overflow-wrap:anywhere}
+.divider{border:0;border-top:1px solid #eee;margin:12px 0}
+.empty{text-align:center;padding:20px;color:#666;line-height:1.7}
+#message{margin-top:10px;line-height:1.6}
+</style></head><body>
+<header>
+<h1>🚚 Delivery Boy VT</h1>
+<p>डिलीवरी बॉय पैनल</p>
+</header><section class="card" id="loginBox">
+<h2>🔐 Delivery Boy Login</h2>
+<form id="loginForm">
+<label for="email">Delivery Email</label>
+<input id="email" type="email" placeholder="अपना लॉगिन ईमेल डालें" autocomplete="username" required>
+<label for="password">Password</label>
+<input id="password" type="password" placeholder="अपना पासवर्ड डालें" autocomplete="current-password" required>
+<button id="loginBtn" type="submit">Login करें</button>
+</form>
+<p id="loginMessage" class="error"></p>
+</section><section id="panel" class="hidden">
+<div class="card">
+<h2>📦 मेरे असाइन किए गए ऑर्डर</h2>
+<p id="signedIn" class="small"></p>
+<button id="refreshBtn" class="blue">🔄 ऑर्डर Refresh करें</button>
+<button id="logoutBtn" class="secondary">Logout</button>
+<div id="message"></div>
+</div>
+<div id="orders"></div>
+</section><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script><script>
+"use strict";
+
+const firebaseConfig={
+  apiKey:"AIzaSyD9cwaW54d5VRfK6rbuqSExcz27bFHdSm8",
+  authDomain:"vt-dairy-farm-9afc8.firebaseapp.com",
+  projectId:"vt-dairy-farm-9afc8",
+  storageBucket:"vt-dairy-farm-9afc8.firebasestorage.app",
+  messagingSenderId:"86012601125",
+  appId:"1:86012601125:web:6a6d81f5d93aae16a030cc"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth=firebase.auth();
+const db=firebase.firestore();
+const $=id=>document.getElementById(id);
+
+let currentUser=null;
+let loading=false;
+let authReady=false;
+
+function safe(value){
+  return String(value??"").replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+function normalizeStatus(value){
+  const s=String(value||"Pending").trim().toLowerCase();
+  if(s==="cancelled"||s==="canceled")return "Cancelled";
+  if(s==="delivered")return "Delivered";
+  if(s==="confirmed")return "Confirmed";
+  return "Pending";
+}
+
+function displayStatus(value){
+  const s=normalizeStatus(value);
+  if(s==="Cancelled")return "Cancel";
+  return s;
+}
+
+function getDateValue(value){
+  if(!value)return 0;
+  if(typeof value.toMillis==="function")return value.toMillis();
+  if(typeof value.toDate==="function")return value.toDate().getTime();
+  if(typeof value==="number")return value;
+  const parsed=Date.parse(value);
+  return Number.isFinite(parsed)?parsed:0;
+}
+
+function formatDate(value){
+  const time=getDateValue(value);
+  return time?new Date(time).toLocaleString("hi-IN"):"तारीख उपलब्ध नहीं";
+}
+
+function showMessage(text,isError=false){
+  $("message").className=isError?"error":"success";
+  $("message").textContent=text;
+}
+
+$("loginForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const btn=$("loginBtn");
+  btn.disabled=true;
+  btn.textContent="लॉगिन हो रहा है...";
+  $("loginMessage").textContent="";
+
+  try{
+    await auth.signInWithEmailAndPassword(
+      $("email").value.trim(),
+      $("password").value
+    );
+    $("password").value="";
+  }catch(error){
+    $("loginMessage").textContent="लॉगिन नहीं हुआ: "+error.message;
+  }finally{
+    btn.disabled=false;
+    btn.textContent="Login करें";
+  }
+});
+
+auth.onAuthStateChanged(async user=>{
+  currentUser=user;
+  authReady=true;
+
+  $("loginBox").classList.toggle("hidden",!!user);
+  $("panel").classList.toggle("hidden",!user);
+
+  if(user){
+    $("signedIn").textContent="लॉगिन: "+(user.email||"");
+    await loadOrders();
+  }else{
+    $("orders").innerHTML="";
+    $("message").textContent="";
+  }
+});
+
+$("logoutBtn").addEventListener("click",async()=>{
+  try{
+    await auth.signOut();
+  }catch(error){
+    $("loginMessage").textContent="Logout नहीं हुआ: "+error.message;
+  }
+});
+
+$("refreshBtn").addEventListener("click",loadOrders);
+
+async function loadOrders(){
+  if(!authReady||!currentUser||loading)return;
+
+  loading=true;
+  $("refreshBtn").disabled=true;
+  $("message").textContent="";
+  $("orders").innerHTML='<div class="card empty">ऑर्डर लोड हो रहे हैं...</div>';
+
+  try{
+    const email=(currentUser.email||"").trim();
+
+    if(!email)throw new Error("लॉगिन अकाउंट का ईमेल उपलब्ध नहीं है।");
+
+    /*
+      Firestore query उसी ईमेल से होगी जिसे Admin ने असाइन किया है।
+      Firestore Rules भी इस पढ़ने की अनुमति को नियंत्रित करते हैं।
+    */
+    const snapshot=await db.collection("orders")
+      .where("assignedToEmail","==",email)
+      .get();
+
+    const docs=snapshot.docs.slice();
+
+    docs.sort((a,b)=>{
+      return getDateValue(b.data().createdAt)-getDateValue(a.data().createdAt);
+    });
+
+    if(!docs.length){
+      $("orders").innerHTML=
+        '<div class="card empty">अभी आपके ईमेल पर कोई ऑर्डर असाइन नहीं है।<br><br>Admin से ऑर्डर असाइन करवाएँ और Refresh करें।</div>';
+      return;
+    }
+
+    $("orders").innerHTML=docs.map(renderOrder).join("");
+
+  }catch(error){
+    console.error("Order load error:",error);
+    $("orders").innerHTML=
+      '<div class="card error">ऑर्डर लोड नहीं हुए।<br>'+
+      safe(error.message)+
+      '<br><br>Admin से assignedToEmail और Firebase Rules जाँचने को कहें।</div>';
+  }finally{
+    loading=false;
+    $("refreshBtn").disabled=false;
+  }
+}
+
+function renderOrder(doc){
+  const o=doc.data()||{};
+  const status=normalizeStatus(o.status);
+  const isCancelled=status==="Cancelled";
+  const isDelivered=status==="Delivered";
+  const finished=isCancelled||isDelivered;
+
+  let items="विवरण उपलब्ध नहीं";
+
+  if(Array.isArray(o.items)){
+    items=o.items.map(item=>{
+      const qty=item.quantity??item.qty??1;
+      const unit=item.unit||"";
+      return safe(item.name||item.productName||"सामान")+
+        " × "+safe(qty)+(unit?" "+safe(unit):"");
+    }).join("<br>");
+  }else if(typeof o.items==="string"){
+    items=safe(o.items);
+  }
+
+  const lat=o.latitude;
+  const lng=o.longitude;
+
+  const hasLocation=
+    lat!==undefined&&lat!==null&&lat!==""&&
+    lng!==undefined&&lng!==null&&lng!==""&&
+    Number.isFinite(Number(lat))&&Number.isFinite(Number(lng))&&
+    Number(lat)>=-90&&Number(lat)<=90&&
+    Number(lng)>=-180&&Number(lng)<=180;
+
+  const mapUrl=hasLocation
+    ?"https://www.google.com/maps?q="+encodeURIComponent(Number(lat)+","+Number(lng))
+    :"";
+
+  const statusClass=isCancelled?"status cancelled":isDelivered?"status delivered":"status";
+
+  let actionButton="";
+  if(!finished){
+    actionButton=
+      '<button class="completeBtn" data-id="'+safe(doc.id)+'">✅ डिलीवरी पूरी करें</button>';
+  }
+
+  return `
+  <div class="card">
+    <h3>📦 ऑर्डर: ${safe(o.id||doc.id)}</h3>
+    <p class="small">ऑर्डर की तारीख: ${safe(formatDate(o.createdAt))}</p>
+    <hr class="divider">
+    <div class="info">
+      <b>ग्राहक:</b> ${safe(o.customerName||o.name||"—")}<br>
+      <b>फोन:</b> ${safe(o.phone||"—")}<br>
+      <b>पता:</b> ${safe(o.address||"—")}
+    </div>
+    <hr class="divider">
+    <b>सामान:</b><br>${items}
+    <p><b>कुल रकम:</b> ₹${safe(Number(o.total??0).toFixed(2))}</p>
+    <p><b>भुगतान:</b> ${safe(o.paymentMethod||"Cash")}</p>
+    <p><b>स्थिति:</b> <span class="${statusClass}">${safe(displayStatus(status))}</span></p>
+    ${isCancelled?'<p class="error"><b>यह ऑर्डर Cancel है। इसकी डिलीवरी न करें।</b></p>':""}
+    ${isDelivered?'<p class="success">यह ऑर्डर पहले ही Delivered हो चुका है।</p>':""}
+    ${mapUrl?'<p><a href="'+mapUrl+'" target="_blank" rel="noopener">📍 Google Maps में ग्राहक की Location खोलें</a></p>':""}
+    ${actionButton}
+  </div>`;
+}
+
+$("orders").addEventListener("click",event=>{
+  const button=event.target.closest(".completeBtn");
+  if(button)completeDelivery(button.dataset.id,button);
+});
+
+async function completeDelivery(docId,button){
+  if(!currentUser)return;
+
+  if(!confirm("क्या आपने यह ऑर्डर ग्राहक को दे दिया है?"))return;
+
+  button.disabled=true;
+  button.textContent="अपडेट हो रहा है...";
+
+  try{
+    const ref=db.collection("orders").doc(docId);
+    const email=(currentUser.email||"").trim();
+
+    await db.runTransaction(async transaction=>{
+      const snapshot=await transaction.get(ref);
+
+      if(!snapshot.exists)throw new Error("ऑर्डर नहीं मिला।");
+
+      const o=snapshot.data()||{};
+      const assigned=(o.assignedToEmail||"").trim();
+
+      if(assigned!==email){
+        throw new Error("यह ऑर्डर आपके ईमेल पर असाइन नहीं है।");
+      }
+
+      const status=normalizeStatus(o.status);
+
+      if(status==="Cancelled"){
+        throw new Error("यह ऑर्डर Cancel है। इसकी डिलीवरी नहीं की जा सकती।");
+      }
+
+      if(status==="Delivered"){
+        throw new Error("यह ऑर्डर पहले ही Delivered हो चुका है।");
+      }
+
+      if(!["Pending","Confirmed"].includes(status)){
+        throw new Error("इस ऑर्डर की स्थिति अपडेट नहीं की जा सकती।");
+      }
+
+      transaction.update(ref,{
+        status:"Delivered",
+        deliveredAt:firebase.firestore.FieldValue.serverTimestamp(),
+        deliveredByEmail:email
+      });
+    });
+
+    /*
+      Order update सफल होने के बाद Admin के लिए सूचना अनुरोध सेव करें।
+      यह रिकॉर्ड बनाता है; इससे अपने-आप Push Notification भेजे जाने की गारंटी नहीं है।
+    */
+    try{
+      await db.collection("notificationRequests").add({
+        type:"delivery_completed",
+        orderId:docId,
+        deliveryBoyEmail:email,
+        message:"डिलीवरी पूरी हो गई: "+docId,
+        status:"pending",
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+      showMessage("डिलीवरी पूरी हो गई। Admin के लिए सूचना का रिकॉर्ड भी सेव हो गया।");
+    }catch(notificationError){
+      console.warn("Notification request could not be saved:",notificationError);
+      showMessage("डिलीवरी पूरी हो गई, लेकिन Admin सूचना का रिकॉर्ड सेव नहीं हुआ। Firebase Rules जाँचें।",true);
+    }
+
+    await loadOrders();
+
+  }catch(error){
+    console.error("Delivery update error:",error);
+    showMessage("अपडेट नहीं हुआ: "+error.message,true);
+    button.disabled=false;
+    button.textContent="✅ डिलीवरी पूरी करें";
+  }
+}
+
+window.addEventListener("online",()=>{
+  if(currentUser)loadOrders();
+});
+</script></body>
+</html>

@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>VT Dairy Farm - Admin</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
+body{background:#f4f7f5;color:#222;padding-bottom:30px}
+header{background:#087a45;color:#fff;padding:22px 15px;text-align:center}
+header h1{font-size:25px}
+header p{margin-top:6px}
+.container{width:94%;max-width:700px;margin:18px auto}
+.card{background:#fff;border-radius:14px;padding:17px;margin-bottom:15px;box-shadow:0 2px 8px #0001}
+.card h2{margin-bottom:12px}
+.login-card{margin-top:35px}
+.login-title{text-align:center;color:#087a45;margin-bottom:20px}
+label{display:block;margin-top:10px;font-weight:bold}
+input{width:100%;padding:13px;margin-top:6px;border:1px solid #ccc;border-radius:8px;font-size:16px}
+button{width:100%;border:0;color:#fff;padding:13px;border-radius:8px;font-size:15px;font-weight:bold;margin-top:8px;cursor:pointer}
+.green{background:#087a45}
+.red{background:#d9534f}
+.blue{background:#2878c8}
+.orange{background:#e09b00}
+.map-button{background:#168a45}
+.login-error{display:none;background:#ffe5e5;color:#a33;padding:12px;border-radius:8px;margin-top:12px;text-align:center;font-weight:bold}
+#adminPanel{display:none}
+.notice,.firebase-status,.message,.location-box,.assignment-box,.report-note{padding:13px;border-radius:9px;margin-bottom:15px;line-height:1.6}
+.notice{background:#fff8d9;border-left:5px solid #e0ad00}
+.firebase-status{background:#e8f1ff;color:#24518a;border-left:5px solid #2878c8}
+.firebase-status.error{background:#ffe5e5;color:#a33;border-left-color:#d9534f}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:15px}
+.stat{background:#fff;padding:18px 10px;border-radius:12px;text-align:center;box-shadow:0 2px 8px #0001}
+.stat-number{font-size:26px;font-weight:bold;color:#087a45;margin-bottom:5px}
+.product{border:1px solid #ddd;border-radius:12px;padding:15px;margin-bottom:12px}
+.product-name{font-size:20px;font-weight:bold}
+.status{padding:9px;border-radius:8px;margin:10px 0;text-align:center;font-weight:bold}
+.active{background:#e7f7ed;color:#126b35}
+.inactive{background:#ffe5e5;color:#a33}
+.message{display:none;background:#e7f7ed;color:#126b35;font-weight:bold;text-align:center}
+.message.error{background:#ffe5e5;color:#a33}
+.notification{border:1px solid #cfe2ff;background:#eef7ff;border-radius:11px;padding:13px;margin-top:10px}
+.notification-title{font-weight:bold;color:#24518a;margin-bottom:7px}
+.notification-time{font-size:13px;color:#777;margin-top:7px}
+.order{border:1px solid #e1e1e1;border-radius:10px;padding:13px;margin-top:10px}
+.order h3{margin-bottom:8px}
+.order-id{background:#f4f7f5;padding:9px;border-radius:8px;margin-bottom:10px;font-weight:bold;word-break:break-all}
+.info{color:#555;line-height:1.7;font-size:14px}
+.items{border-top:1px solid #eee;margin-top:10px;padding-top:8px}
+.item{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #eee}
+.total{text-align:right;color:#087a45;font-size:18px;font-weight:bold;margin-top:10px}
+.order-status{display:block;padding:9px;border-radius:7px;background:#fff3cd;color:#856404;margin-top:10px;font-weight:bold;text-align:center}
+.location-box{background:#f0f8f2;color:#126b35;border-left:5px solid #168a45;margin-top:12px}
+.assignment-box{background:#eef7ff;border-left:5px solid #2878c8;margin-top:14px}
+.assignment-title{font-weight:bold;color:#24518a;margin-bottom:5px}
+.assigned{background:#e7f7ed;color:#126b35;padding:10px;border-radius:8px;margin-top:8px;font-weight:bold}
+.small-note{color:#777;font-size:13px;line-height:1.6;margin-top:7px}
+.empty{text-align:center;color:#777;padding:18px 10px;line-height:1.6}
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.report-box{background:#f7faf8;border:1px solid #e0e8e3;border-radius:11px;padding:14px 10px;text-align:center}
+.report-number{font-size:23px;font-weight:bold;color:#087a45;margin-bottom:5px}
+.report-label{font-size:13px;color:#555;line-height:1.4}
+.report-section{border-top:1px solid #eee;margin-top:15px;padding-top:12px}
+.report-row{display:flex;justify-content:space-between;gap:10px;padding:10px 4px;border-bottom:1px solid #eee;font-size:14px}
+.report-product{font-weight:bold}
+.report-qty{color:#087a45;font-weight:bold;text-align:right}
+.report-note{background:#fff8d9;border-left:5px solid #e0ad00;margin-top:12px;font-size:13px}
+.cancelled-status{background:#ffe5e5;color:#a33}
+.delivered-status{background:#e7f7ed;color:#126b35}
+.confirmed-status{background:#e8f1ff;color:#24518a}
+</style>
+</head>
+<body>
+
+<header>
+<h1>🧑‍💼 VT Dairy Farm</h1>
+<p>Admin Panel</p>
+</header>
+
+<div id="loginPage">
+<div class="container">
+<div class="card login-card">
+<h2 class="login-title">🔐 VT Dairy Farm Admin Login</h2>
+<label>Email</label>
+<input type="email" id="adminEmail" placeholder="Admin Email डालें" autocomplete="username">
+<label>Password</label>
+<input type="password" id="adminPassword" placeholder="Password डालें" autocomplete="current-password">
+<button class="green" onclick="adminLogin()">🔐 Login करें</button>
+<div id="loginError" class="login-error"></div>
+</div>
+</div>
+</div>
+
+<div id="adminPanel">
+<div class="container">
+
+<div class="notice">
+<b>⚙️ Admin Dashboard</b><br>
+यहाँ से Products, Rates, Customer Orders और Delivery Assignment संभाल सकते हैं।
+<br><br>
+🚚 Delivery Boy जब Delivery Complete करेगा, तो यहाँ Delivery Notification दिखाई देगी।
+</div>
+
+<div id="firebaseStatus" class="firebase-status">🔄 Firebase Database से कनेक्शन जाँच रहा है...</div>
+<button class="red" onclick="adminLogout()">🚪 Logout</button>
+<div id="message" class="message"></div>
+
+<div class="stats">
+<div class="stat"><div id="orderCount" class="stat-number">0</div>Online Orders</div>
+<div class="stat"><div id="productCount" class="stat-number">0</div>Active Products</div>
+</div>
+
+<div class="card">
+<h2>📊 Sales & Business Report</h2>
+<button class="blue" onclick="loadSalesReport()">🔄 Report Refresh करें</button>
+<div id="salesReport"><div class="empty">Report लोड हो रही है...</div></div>
+</div>
+
+<div class="card">
+<h2>🔔 Delivery Notifications</h2>
+<button class="blue" onclick="loadDeliveryNotifications()">🔄 Notifications Refresh करें</button>
+<div id="notifications"><div class="empty">Notifications लोड हो रही हैं...</div></div>
+</div>
+
+<div class="card">
+<h2>🥛 Products & Rates</h2>
+<div id="products"><div class="empty">Products लोड हो रहे हैं...</div></div>
+</div>
+
+<div class="card">
+<h2>📦 Customer Orders</h2>
+<button class="blue" onclick="showOrders()">🔄 Online Orders Refresh करें</button>
+<div id="orders"><div class="empty">Online Orders लोड हो रहे हैं...</div></div>
+</div>
+
+</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+const firebaseConfig={
+apiKey:"AIzaSyD9cwaW54d5VRfK6rbuqSExcz27bFHdSm8",
+authDomain:"vt-dairy-farm-9afc8.firebaseapp.com",
+projectId:"vt-dairy-farm-9afc8",
+storageBucket:"vt-dairy-farm-9afc8.firebasestorage.app",
+messagingSenderId:"86012601125",
+appId:"1:86012601125:web:6a6d81f5d93aae16a030cc"
+};
+
+const ADMIN_EMAIL="vtdairyfarm2025@gmail.com";
+let db=null,auth=null,firebaseReady=false;
+
+try{
+firebase.initializeApp(firebaseConfig);
+auth=firebase.auth();
+db=firebase.firestore();
+firebaseReady=true;
+}catch(e){
+console.error(e);
+}
+
+const defaultProducts=[
+{id:"milk",name:"दूध",price:80,unit:"लीटर",active:true},
+{id:"ghee",name:"घी",price:0,unit:"किलो",active:false},
+{id:"paneer",name:"पनीर",price:0,unit:"किलो",active:false},
+{id:"mawa",name:"मावा",price:0,unit:"किलो",active:false}
+];
+
+function escapeHTML(v){
+return String(v??"")
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
+}
+
+function escapeJS(v){
+return String(v??"")
+.replace(/\\/g,"\\\\")
+.replace(/'/g,"\\'")
+.replace(/"/g,'\\"')
+.replace(/\n/g,"\\n")
+.replace(/\r/g,"\\r");
+}
+
+/* Firebase Timestamp, Date और text date संभालने के लिए */
+function dateMillis(value){
+if(value===null||value===undefined||value==="")return 0;
+try{
+if(value&&typeof value.toMillis==="function")return value.toMillis();
+}catch(e){}
+try{
+if(value&&typeof value.toDate==="function")return value.toDate().getTime();
+}catch(e){}
+if(value instanceof Date)return value.getTime();
+if(typeof value==="number")return value<100000000000?value*1000:value;
+const parsed=Date.parse(value);
+return Number.isFinite(parsed)?parsed:0;
+}
+
+function formatDate(value){
+const ms=dateMillis(value);
+return ms?new Date(ms).toLocaleString("hi-IN"):"समय उपलब्ध नहीं";
+}
+
+function showMessage(t,err=false){
+const b=document.getElementById("message");
+b.textContent=t;
+b.className=err?"message error":"message";
+b.style.display="block";
+clearTimeout(window.messageTimer);
+window.messageTimer=setTimeout(()=>b.style.display="none",6000);
+}
+
+function setFirebaseStatus(t,err=false){
+const b=document.getElementById("firebaseStatus");
+b.textContent=t;
+b.className=err?"firebase-status error":"firebase-status";
+}
+
+function readableError(e){
+return (e&&e.code?e.code+": ":"")+(e&&e.message?e.message:"Unknown error");
+}
+
+async function adminLogin(){
+const email=document.getElementById("adminEmail").value.trim();
+const password=document.getElementById("adminPassword").value;
+const b=document.getElementById("loginError");
+b.style.display="none";
+
+if(!email||!password){
+b.textContent="Email और Password दोनों डालें।";
+b.style.display="block";
+return;
+}
+
+if(!auth){
+b.textContent="Firebase Authentication उपलब्ध नहीं है।";
+b.style.display="block";
+return;
+}
+
+try{
+await auth.signInWithEmailAndPassword(email,password);
+}catch(e){
+console.error(e);
+b.textContent="Login नहीं हुआ: "+readableError(e);
+b.style.display="block";
+}
+}
+
+function adminLogout(){
+if(auth)auth.signOut();
+}
+
+function showAdminPanel(){
+document.getElementById("loginPage").style.display="none";
+document.getElementById("adminPanel").style.display="block";
+
+const email=String(auth.currentUser?.email||"").toLowerCase();
+
+if(email!==ADMIN_EMAIL){
+setFirebaseStatus("🔴 गलत Admin Email। सही Admin Email है: "+ADMIN_EMAIL,true);
+document.getElementById("orders").innerHTML='<div class="empty">सही Admin Email से Login करें।</div>';
+return;
+}
+
+setFirebaseStatus("🟢 Admin Login सफल। Firestore पढ़ने की जाँच हो रही है।");
+renderProducts();
+showOrders();
+loadDeliveryNotifications();
+loadSalesReport();
+window.scrollTo(0,0);
+}
+
+function showLoginPage(){
+document.getElementById("loginPage").style.display="block";
+document.getElementById("adminPanel").style.display="none";
+document.getElementById("adminPassword").value="";
+}
+
+document.addEventListener("keydown",e=>{
+if(e.key==="Enter"&&document.getElementById("loginPage").style.display!=="none")adminLogin();
+});
+
+function getLocalProducts(){
+try{
+const a=JSON.parse(localStorage.getItem("vtDairyProducts"));
+if(Array.isArray(a)&&a.length)return a;
+}catch(e){}
+return defaultProducts.map(p=>({...p}));
+}
+
+function saveLocalProducts(p){
+try{
+localStorage.setItem("vtDairyProducts",JSON.stringify(p));
+}catch(e){}
+}
+
+async function getFirebaseProducts(){
+if(!firebaseReady||!db)throw new Error("Firebase SDK उपलब्ध नहीं है");
+const snap=await db.collection("products").get();
+const out=[];
+snap.forEach(doc=>{
+const d=doc.data()||{};
+out.push({
+id:d.id||doc.id,
+name:d.name||"",
+price:Number(d.price||0),
+unit:d.unit||"",
+active:d.active===true
+});
+});
+return out;
+}
+
+async function createDefaultFirebaseProducts(){
+try{
+for(const p of defaultProducts){
+await db.collection("products").doc(p.id).set({
+id:p.id,
+name:p.name,
+price:p.price,
+unit:p.unit,
+active:p.active,
+updatedAt:new Date().toISOString()
+},{merge:true});
+}
+return true;
+}catch(e){
+console.error(e);
+return false;
+}
+}
+
+async function getProducts(){
+try{
+let list=await getFirebaseProducts();
+if(list.length){
+saveLocalProducts(list);
+return list;
+}
+if(await createDefaultFirebaseProducts()){
+list=await getFirebaseProducts();
+if(list.length){
+saveLocalProducts(list);
+return list;
+}
+}
+return list;
+}catch(e){
+console.error("Products read error",e);
+showMessage("Products Firebase से नहीं पढ़ पाए: "+readableError(e),true);
+return getLocalProducts();
+}
+}
+
+async function renderProducts(){
+const box=document.getElementById("products");
+box.innerHTML='<div class="empty">Products लोड हो रहे हैं...</div>';
+const list=await getProducts();
+box.innerHTML="";
+
+if(!list.length){
+box.innerHTML='<div class="empty">Products नहीं मिले। Firebase Rules/collection जाँचें।</div>';
+document.getElementById("productCount").textContent="0";
+return;
+}
+
+list.forEach(p=>{
+const on=p.active===true;
+const div=document.createElement("div");
+div.className="product";
+
+div.innerHTML=`
+<div class="product-name">${escapeHTML(p.name)}</div>
+<div class="status ${on?"active":"inactive"}">${on?"🟢 Product चालू है":"🔴 Product बंद है"}</div>
+<label>Rate (₹ / ${escapeHTML(p.unit)})</label>
+<input type="number" min="0" step="1" id="price_${escapeHTML(p.id)}" value="${Number(p.price)||0}">
+<button class="${on?"red":"green"}" onclick="toggleProduct('${escapeJS(p.id)}')">${on?"🔴 Product बंद करें":"🟢 Product चालू करें"}</button>
+<button class="blue" onclick="saveProduct('${escapeJS(p.id)}')">💾 Rate Save करें</button>
+`;
+box.appendChild(div);
+});
+
+document.getElementById("productCount").textContent=list.filter(p=>p.active===true).length;
+}
+
+async function saveProduct(id){
+const input=document.getElementById("price_"+id);
+const price=Number(input?.value);
+
+if(!input||!Number.isFinite(price)||price<0){
+showMessage("सही Rate डालें।",true);
+return;
+}
+
+try{
+const ref=db.collection("products").doc(id);
+const snap=await ref.get();
+
+if(!snap.exists){
+showMessage("Product Firebase में नहीं मिला।",true);
+return;
+}
+
+const d=snap.data()||{};
+await ref.set({
+id,
+name:d.name||id,
+price,
+unit:d.unit||"",
+active:d.active===true,
+updatedAt:new Date().toISOString()
+},{merge:true});
+
+showMessage("🟢 "+(d.name||id)+" का Rate ₹"+price+" Save हो गया।");
+await renderProducts();
+}catch(e){
+console.error(e);
+showMessage("Rate Save नहीं हुआ: "+readableError(e),true);
+}
+}
+
+async function toggleProduct(id){
+try{
+const ref=db.collection("products").doc(id);
+const snap=await ref.get();
+
+if(!snap.exists){
+showMessage("Product Firebase में नहीं मिला।",true);
+return;
+}
+
+const d=snap.data()||{};
+const active=d.active!==true;
+
+await ref.update({active,updatedAt:new Date().toISOString()});
+showMessage((d.name||id)+(active?" चालू":" बंद")+" कर दिया गया।");
+await renderProducts();
+}catch(e){
+console.error(e);
+showMessage("Product चालू/बंद नहीं हुआ: "+readableError(e),true);
+}
+}
+
+/* Firebase read error को खाली Orders नहीं मानना */
+async function getFirebaseOrders(){
+if(!firebaseReady||!db)throw new Error("Firebase SDK उपलब्ध नहीं है");
+
+const snap=await db.collection("orders").get();
+const orders=[];
+
+snap.forEach(doc=>{
+const d=doc.data()||{};
+orders.push({...d,id:d.id||doc.id,_firestoreDocId:doc.id});
+});
+
+orders.sort((a,b)=>dateMillis(b.createdAt||b.date)-dateMillis(a.createdAt||a.date));
+return orders;
+}
+
+async function showOrders(){
+const box=document.getElementById("orders");
+box.innerHTML='<div class="empty">🔄 Firebase से Online Orders लोड हो रहे हैं...</div>';
+
+try{
+const orders=await getFirebaseOrders();
+document.getElementById("orderCount").textContent=orders.length;
+setFirebaseStatus("🟢 Firebase से कनेक्शन सफल। Online Orders पढ़े जा सकते हैं।");
+
+if(!orders.length){
+box.innerHTML='<div class="empty">📦 Firebase में अभी कोई Online Order नहीं मिला।<br>यहाँ दूसरे फोन के localStorage वाले ऑर्डर नहीं दिखाए जाते।</div>';
+return;
+}
+
+box.innerHTML=orders.map(createOrderHTML).join("");
+}catch(e){
+console.error("Firebase Orders Error:",e);
+document.getElementById("orderCount").textContent="—";
+
+box.innerHTML='<div class="empty" style="color:#a33">🔴 Firebase से Online Orders लोड नहीं हुए।<br><b>Error:</b> '+escapeHTML(readableError(e))+'<br><br>इसका मतलब यह नहीं कि ऑर्डर पक्का गायब है। Admin Email और Firestore Rules/permissions की जाँच जरूरी है।</div>';
+
+setFirebaseStatus("🔴 Online Orders पढ़ने में गलती: "+readableError(e),true);
+}
+}
+
+async function loadSalesReport(){
+const box=document.getElementById("salesReport");
+box.innerHTML='<div class="empty">Sales Report लोड हो रही है...</div>';
+
+let orders;
+try{
+orders=await getFirebaseOrders();
+}catch(e){
+console.error(e);
+box.innerHTML='<div class="empty" style="color:#a33">🔴 Report लोड नहीं हुई: '+escapeHTML(readableError(e))+'<br>Firebase Orders उपलब्ध नहीं हैं, इसलिए local फोन डेटा से गलत Report नहीं बनाई गई।</div>';
+return;
+}
+
+if(!orders.length){
+box.innerHTML='<div class="empty">Firebase में Report के लिए कोई Online Order नहीं मिला।</div>';
+return;
+}
+
+const now=new Date();
+let todayOrders=0,todayDelivered=0,todaySales=0,totalDeliveredSales=0;
+let deliveredCount=0,cancelledCount=0,pendingCount=0,confirmedCount=0;
+const productSales={};
+
+orders.forEach(o=>{
+const s=String(o.status||"Pending");
+const total=Number(o.total)||Number(o.order_total)||0;
+
+if(s==="Delivered"){
+deliveredCount++;
+totalDeliveredSales+=total;
+}else if(s==="Cancelled"){
+cancelledCount++;
+}else if(s==="Pending"){
+pendingCount++;
+}else if(s==="Confirmed"){
+confirmedCount++;
+}
+
+const dateMs=dateMillis(o.createdAt||o.date);
+const dt=dateMs?new Date(dateMs):null;
+
+if(dt&&dt.getFullYear()===now.getFullYear()&&dt.getMonth()===now.getMonth()&&dt.getDate()===now.getDate()){
+todayOrders++;
+if(s==="Delivered"){
+todayDelivered++;
+todaySales+=total;
+}
+}
+
+if(s==="Delivered"&&Array.isArray(o.items)){
+o.items.forEach(i=>{
+const name=i.name||"Product";
+const unit=i.unit||"";
+const qty=Number(i.qty??i.quantity??0);
+const key=name+"||"+unit;
+
+if(!productSales[key])productSales[key]={name,unit,qty:0};
+productSales[key].qty+=Number.isFinite(qty)?qty:0;
+});
+}
+});
+
+const plist=Object.values(productSales).sort((a,b)=>b.qty-a.qty);
+
+const ph=plist.length
+?plist.map(p=>`<div class="report-row"><div class="report-product">${escapeHTML(p.name)}</div><div class="report-qty">${p.qty.toFixed(2)} ${escapeHTML(p.unit)}</div></div>`).join("")
+:'<div class="empty">अभी कोई Delivered Product Sale नहीं मिली।</div>';
+
+box.innerHTML=`
+<div class="report-grid">
+${reportBox(todayOrders,"आज के Orders")}
+${reportBox("₹"+todaySales.toFixed(2),"आज की Delivered Sales")}
+${reportBox(todayDelivered,"आज Delivered")}
+${reportBox("₹"+totalDeliveredSales.toFixed(2),"कुल Delivered Sales")}
+${reportBox(deliveredCount,"कुल Delivered Orders")}
+${reportBox(cancelledCount,"Cancel Orders")}
+${reportBox(pendingCount,"Pending Orders")}
+${reportBox(confirmedCount,"Confirmed Orders")}
+</div>
+<div class="report-section"><b>🥛 Delivered Products की बिक्री</b>${ph}</div>
+<div class="report-note">ℹ️ Sales में केवल <b>Delivered</b> orders की रकम शामिल है।</div>
+`;
+}
+
+function reportBox(n,l){
+return `<div class="report-box"><div class="report-number">${n}</div><div class="report-label">${l}</div></div>`;
+}
+
+function createOrderHTML(o){
+const items=Array.isArray(o.items)
+?o.items.map(i=>{
+const q=i.qty??i.quantity??1;
+const amount=(Number(i.price)||0)*(Number(q)||0);
+return `<div class="item"><span>${escapeHTML(i.name||"Product")} × ${escapeHTML(q)} ${escapeHTML(i.unit||"")}</span><span>₹${amount.toFixed(2)}</span></div>`;
+}).join("")
+:"";
+
+const total=Number(o.total)||Number(o.order_total)||0;
+const status=o.status||"Pending";
+const displayStatus=status==="Cancelled"?"Cancel":status;
+const date=formatDate(o.createdAt||o.date);
+const docId=o._firestoreDocId||o.id||"";
+
+const cls=status==="Cancelled"?"cancelled-status":status==="Delivered"?"delivered-status":status==="Confirmed"?"confirmed-status":"";
+
+let loc='<div class="location-box">📍 Customer ने Current Location नहीं भेजी।</div>';
+const lat=Number(o.latitude),lng=Number(o.longitude);
+
+if(Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180){
+loc=`<div class="location-box"><b>📍 Delivery Location उपलब्ध है</b><br>Latitude: ${lat}<br>Longitude: ${lng}<button class="map-button" onclick="openCustomerLocation(${lat},${lng})">🗺️ Google Maps में Location देखें</button></div>`;
+}
+
+const assignment=`
+<div class="assignment-box">
+<div class="assignment-title">🚚 Delivery Assignment</div>
+${o.assignedToEmail?`<div class="assigned">🟢 Assigned to: ${escapeHTML(o.assignedToEmail)}</div>`:""}
+<input type="email" id="deliveryEmail_${escapeHTML(docId)}" value="${escapeHTML(o.assignedToEmail||"")}" placeholder="Delivery Boy का Login Email">
+<div class="small-note">जिस Email से Delivery Boy Login करता है, वही Email डालें।</div>
+<button class="green" onclick="assignDelivery('${escapeJS(docId)}')">🚚 Delivery Boy को Order Assign करें / बदलें</button>
+${o.assignedToEmail?`<button class="red" onclick="removeDeliveryAssignment('${escapeJS(docId)}')">❌ Assignment हटाएँ</button>`:""}
+</div>`;
+
+const cancelled=status==="Cancelled"
+?`<div class="location-box" style="background:#fff3f3;color:#a33;border-left-color:#d9534f"><b>❌ यह Order Cancel है।</b><br>Cancel At: ${escapeHTML(formatDate(o.cancelledAt))}<br>Cancel By: ${escapeHTML(o.cancelledBy||"Unknown")}</div>`
+:"";
+
+return `
+<div class="order">
+<div class="order-id">Order ID: ${escapeHTML(o.id||"नहीं है")}</div>
+<h3>👤 ${escapeHTML(o.customerName||o.name||"Customer")}</h3>
+<div class="info">📞 ${escapeHTML(o.phone||"नहीं है")}<br>📍 ${escapeHTML(o.address||"नहीं है")}<br>📅 ${escapeHTML(date)}</div>
+${loc}
+<div class="items">${items||'<div class="empty">Order items उपलब्ध नहीं हैं।</div>'}</div>
+<div class="total">कुल: ₹${total.toFixed(2)}</div>
+<div class="order-status ${cls}">वर्तमान Status: ${escapeHTML(displayStatus)}</div>
+${cancelled}
+${assignment}
+<div style="margin-top:14px">
+<b>📦 Order Status बदलें</b>
+<button class="orange" onclick="updateOrderStatus('${escapeJS(docId)}','Pending')">🕐 Pending</button>
+<button class="blue" onclick="updateOrderStatus('${escapeJS(docId)}','Confirmed')">✅ Confirmed</button>
+<button class="green" onclick="updateOrderStatus('${escapeJS(docId)}','Delivered')">🚚 Delivered</button>
+<button class="red" onclick="updateOrderStatus('${escapeJS(docId)}','Cancelled')">❌ Cancel</button>
+</div>
+</div>`;
+}
+
+function openCustomerLocation(lat,lng){
+if(!Number.isFinite(Number(lat))||!Number.isFinite(Number(lng))){
+showMessage("Customer की Location सही नहीं मिली।",true);
+return;
+}
+window.open("https://www.google.com/maps?q="+encodeURIComponent(lat+","+lng),"_blank");
+}
+
+async function assignDelivery(id){
+if(!id){
+showMessage("Firestore Order ID नहीं मिला।",true);
+return;
+}
+
+const input=document.getElementById("deliveryEmail_"+id);
+const email=(input?.value||"").trim().toLowerCase();
+
+if(!email){
+showMessage("Delivery Boy का Login Email डालें।",true);
+return;
+}
+
+try{
+await db.collection("orders").doc(id).update({
+assignedToEmail:email,
+assignedAt:new Date().toISOString(),
+assignedBy:auth.currentUser?.uid||""
+});
+showMessage("Order Delivery Boy को Assign हो गया।");
+await showOrders();
+}catch(e){
+console.error(e);
+showMessage("Order Assign नहीं हुआ: "+readableError(e),true);
+}
+}
+
+async function removeDeliveryAssignment(id){
+if(!id||!confirm("क्या इस Order की Delivery Assignment हटानी है?"))return;
+
+try{
+await db.collection("orders").doc(id).update({
+assignedToEmail:firebase.firestore.FieldValue.delete(),
+assignedAt:firebase.firestore.FieldValue.delete(),
+assignedBy:firebase.firestore.FieldValue.delete()
+});
+showMessage("Delivery Assignment हटा दी गई।");
+await showOrders();
+}catch(e){
+console.error(e);
+showMessage("Assignment नहीं हटी: "+readableError(e),true);
+}
+}
+
+async function updateOrderStatus(id,status){
+if(!id){
+showMessage("Firestore Order ID नहीं मिला।",true);
+return;
+}
+
+try{
+const ref=db.collection("orders").doc(id);
+const snap=await ref.get();
+
+if(!snap.exists){
+showMessage("Firebase में यह Order नहीं मिला।",true);
+return;
+}
+
+const data={status};
+
+if(status==="Delivered"){
+data.deliveredAt=new Date().toISOString();
+data.deliveredBy=auth.currentUser?.uid||"";
+data.deliveredByEmail=auth.currentUser?.email||"";
+}
+
+if(status==="Cancelled"){
+data.cancelledAt=new Date().toISOString();
+data.cancelledBy="admin";
+data.cancelledByUid=auth.currentUser?.uid||"";
+data.cancelledByEmail=auth.currentUser?.email||"";
+}
+
+await ref.update(data);
+
+showMessage("Order Status "+(status==="Cancelled"?"Cancel":status)+" कर दिया गया।");
+await showOrders();
+await loadSalesReport();
+}catch(e){
+console.error(e);
+showMessage("Status Update नहीं हुआ: "+readableError(e),true);
+}
+}
+
+async function loadDeliveryNotifications(){
+const box=document.getElementById("notifications");
+box.innerHTML='<div class="empty">Notifications लोड हो रही हैं...</div>';
+
+try{
+const snap=await db.collection("notificationRequests")
+.where("type","==","delivery_completed").get();
+
+const list=[];
+snap.forEach(d=>list.push({...d.data(),_docId:d.id}));
+list.sort((a,b)=>dateMillis(b.createdAt)-dateMillis(a.createdAt));
+
+if(!list.length){
+box.innerHTML='<div class="empty">🔔 अभी कोई Delivery Notification नहीं है।</div>';
+return;
+}
+
+box.innerHTML=list.map(n=>`
+<div class="notification">
+<div class="notification-title">🚚 Delivery Complete</div>
+<div><b>Order ID:</b> ${escapeHTML(n.orderId||"")}</div>
+<div>👤 Customer: ${escapeHTML(n.customerName||"Customer")}</div>
+<div>📞 Customer Phone: ${escapeHTML(n.customerPhone||"")}</div>
+<div>🚚 Delivery Boy: ${escapeHTML(n.deliveryBoyEmail||"")}</div>
+<div>📱 Notification Status: ${escapeHTML(n.status||"pending")}</div>
+<div class="notification-time">🕐 ${escapeHTML(formatDate(n.createdAt))}</div>
+</div>
+`).join("");
+
+}catch(e){
+console.error(e);
+box.innerHTML='<div class="empty" style="color:#a33">Notifications लोड नहीं हुईं: '+escapeHTML(readableError(e))+'</div>';
+}
+}
+
+if(firebaseReady&&auth){
+auth.onAuthStateChanged(user=>{
+if(user)showAdminPanel();
+else showLoginPage();
+});
+}else{
+showLoginPage();
+setFirebaseStatus("🔴 Firebase SDK लोड नहीं हुआ। इंटरनेट/ब्राउज़र जाँचें।",true);
+}
+</script>
+</body>
+</html>

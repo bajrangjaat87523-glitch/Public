@@ -1,0 +1,27 @@
+{
+  "id": "./bh-delivery.html",
+  "name": "BH Delivery",
+  "short_name": "BH Delivery",
+  "description": "BH Delivery Boy App",
+  "lang": "hi",
+  "start_url": "./bh-delivery.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1f1b1c",
+  "theme_color": "#1f1b1c",
+  "icons": [
+    {
+      "src": "./bh-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./bh-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#087a45">
+<title>BH Delivery</title>
+<link rel="manifest" href="./bh-delivery-manifest.json">
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:14px;font-family:Arial,sans-serif;background:#f1f6f2;color:#173629}
+header{background:#087a45;color:#fff;padding:18px;border-radius:14px;margin-bottom:14px}
+h1{font-size:23px;margin:0 0 8px}
+.card{background:#fff;padding:16px;border-radius:12px;margin-bottom:14px;box-shadow:0 2px 8px #0001}
+input,button{width:100%;padding:12px;margin-top:10px;border-radius:8px;font-size:16px}
+input{border:1px solid #bbb}
+button{border:0;background:#087a45;color:#fff;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.6;cursor:not-allowed}
+.secondary{background:#455a64}
+.error{color:#b00020;white-space:pre-wrap}
+.good{color:#087a45}
+.small{font-size:13px;color:#555}
+.hidden{display:none}
+a{color:#087a45;font-weight:bold}
+hr{border:0;border-top:1px solid #ddd;margin:18px 0}
+</style>
+</head>
+<body>
+<header><h1>🚚 BH Delivery</h1><p>BH डिलीवरी बॉय पैनल</p></header>
+
+<section class="card" id="authBox">
+<h2>रजिस्ट्रेशन / लॉगिन</h2>
+<p class="small">यूज़रनेम और पासवर्ड याद रखें। अकाउंट मंजूर होने के बाद ही ऑर्डर दिखेंगे।</p>
+<h3>नया अकाउंट</h3>
+<form id="registerForm">
+<input id="regUsername" placeholder="यूज़रनेम (3–24 अक्षर)" minlength="3" maxlength="24" autocomplete="username" required>
+<input id="regDisplayName" placeholder="आपका नाम" maxlength="60" autocomplete="name" required>
+<input id="regPassword" type="password" placeholder="पासवर्ड (कम से कम 6 अक्षर)" minlength="6" autocomplete="new-password" required>
+<button id="registerBtn" type="submit">रजिस्ट्रेशन करें</button>
+</form>
+<hr>
+<h3>पहले से अकाउंट है</h3>
+<form id="loginForm">
+<input id="loginUsername" placeholder="यूज़रनेम" maxlength="24" autocomplete="username" required>
+<input id="loginPassword" type="password" placeholder="पासवर्ड" autocomplete="current-password" required>
+<button id="loginBtn" type="submit">लॉगिन करें</button>
+</form>
+<p id="authMessage" class="error" role="status"></p>
+</section>
+
+<section id="pendingBox" class="card hidden">
+<h2>मंजूरी बाकी है</h2><p id="pendingText">एडमिन की मंजूरी के बाद ऑर्डर दिखेंगे।</p>
+<button id="pendingLogout" class="secondary" type="button">Logout</button>
+</section>
+
+<section id="panel" class="hidden">
+<div class="card">
+<h2>मेरे ऑर्डर</h2><p id="signedIn" class="small"></p>
+<button id="refreshBtn" type="button">ऑर्डर Refresh करें</button>
+<button id="logoutBtn" class="secondary" type="button">Logout</button>
+<p id="message" class="error" role="status"></p>
+</div>
+<div id="orders"></div>
+</section>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey:"AIzaSyD9cwaW54d5VRfK6rbuqSExcz27bFHdSm8",
+  authDomain:"vt-dairy-farm-9afc8.firebaseapp.com",
+  projectId:"vt-dairy-farm-9afc8",
+  storageBucket:"vt-dairy-farm-9afc8.firebasestorage.app",
+  messagingSenderId:"86012601125",
+  appId:"1:86012601125:web:6a6d81f5d93aae16a030cc"
+};
+
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth(), db=firebase.firestore();
+const $=id=>document.getElementById(id);
+const DOMAIN="@delivery.vtdairyfarm.com";
+let currentUser=null, profile=null, busy=false, registering=false, authCheckRun=0;
+
+function esc(v){
+  return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function mail(u){return u.trim().toLowerCase()+DOMAIN;}
+function valid(u){return /^[a-z0-9._-]{3,24}$/.test(u);}
+function view(v){
+  $("authBox").classList.toggle("hidden",v!=="auth");
+  $("pendingBox").classList.toggle("hidden",v!=="pending");
+  $("panel").classList.toggle("hidden",v!=="panel");
+}
+function authMsg(t){$("authMessage").textContent=t;}
+function lockForm(formId,locked){
+  $(formId).querySelectorAll("input,button").forEach(el=>el.disabled=locked);
+}
+function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+
+$("registerForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(registering)return;
+  const u=$("regUsername").value.trim().toLowerCase();
+  const name=$("regDisplayName").value.trim();
+  const p=$("regPassword").value;
+  if(!valid(u)){authMsg("यूज़रनेम 3–24 अक्षर का हो; a-z, 0-9, dot, underscore या hyphen इस्तेमाल करें।");return;}
+  if(name.length<2){authMsg("कृपया अपना सही नाम लिखें।");return;}
+  registering=true;lockForm("registerForm",true);
+  authMsg("रजिस्ट्रेशन हो रहा है...");
+  try{
+    const credential=await auth.createUserWithEmailAndPassword(mail(u),p);
+    const user=credential.user;
+    // Auth listener को profile लिखे जाने तक इंतजार करवाएँ, ताकि नया अकाउंट गलती से sign out न हो।
+    await db.collection("deliveryUsers").doc(user.uid).set({
+      uid:user.uid, username:u, displayName:name, email:mail(u),
+      status:"pending", createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    authMsg("रजिस्ट्रेशन हो गया। एडमिन की मंजूरी का इंतजार करें।");
+    await loadSignedInUser(user,true);
+  }catch(err){
+    authMsg("रजिस्ट्रेशन नहीं हुआ: "+(err.code==="auth/email-already-in-use"?"यह यूज़रनेम पहले से मौजूद है।":err.message));
+  }finally{
+    registering=false;lockForm("registerForm",false);
+  }
+});
+
+$("loginForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const u=$("loginUsername").value.trim().toLowerCase();
+  if(!valid(u)){authMsg("यूज़रनेम सही लिखें।");return;}
+  lockForm("loginForm",true);authMsg("लॉगिन हो रहा है...");
+  try{
+    await auth.signInWithEmailAndPassword(mail(u),$("loginPassword").value);
+    authMsg("");
+  }catch(err){
+    authMsg("लॉगिन नहीं हुआ। यूज़रनेम/पासवर्ड जाँचें।");
+  }finally{lockForm("loginForm",false);}
+});
+
+async function loadSignedInUser(user,fromRegistration=false){
+  const run=++authCheckRun;
+  currentUser=user;profile=null;
+  let snap=null,lastError=null;
+  // नए अकाउंट का profile document लिखने में थोड़ी देर हो सकती है।
+  for(let i=0;i<(fromRegistration?8:1);i++){
+    try{
+      snap=await db.collection("deliveryUsers").doc(user.uid).get();
+      if(snap.exists)break;
+    }catch(err){lastError=err;break;}
+    if(i<7)await sleep(500);
+  }
+  if(run!==authCheckRun||!auth.currentUser||auth.currentUser.uid!==user.uid)return;
+  if(lastError)throw lastError;
+  if(!snap||!snap.exists){
+    await auth.signOut();
+    authMsg("अकाउंट रिकॉर्ड नहीं मिला। Firestore Rules और deliveryUsers रिकॉर्ड जाँचें।");
+    view("auth");return;
+  }
+  profile=snap.data()||{};
+  if(profile.uid!==user.uid){
+    await auth.signOut();authMsg("अकाउंट रिकॉर्ड की जाँच में समस्या है।");view("auth");return;
+  }
+  if(profile.status!=="approved"){
+    view("pending");
+    $("pendingText").textContent=profile.status==="rejected"
+      ?"अकाउंट मंजूर नहीं हुआ। एडमिन से संपर्क करें।"
+      :"अकाउंट बन गया है। एडमिन की मंजूरी के बाद ही ऑर्डर दिखेंगे।";
+    return;
+  }
+  view("panel");
+  $("signedIn").textContent="लॉगिन: "+(profile.displayName||profile.username||"Delivery Boy");
+  await loadOrders();
+}
+
+auth.onAuthStateChanged(async user=>{
+  const run=++authCheckRun;
+  currentUser=user;profile=null;
+  if(!user){
+    view("auth");$("orders").innerHTML="";$("signedIn").textContent="";
+    if(!registering)authMsg("");
+    return;
+  }
+  try{
+    // Registration submit के दौरान profile creation पूरा होने दें।
+    if(registering){
+      for(let i=0;i<20&&registering;i++)await sleep(250);
+      if(!auth.currentUser||auth.currentUser.uid!==user.uid||run!==authCheckRun)return;
+    }
+    await loadSignedInUser(user,false);
+  }catch(err){
+    if(run!==authCheckRun)return;
+    view("auth");authMsg("अकाउंट जाँच नहीं सका: "+err.message);
+  }
+});
+
+$("logoutBtn").onclick=$("pendingLogout").onclick=()=>auth.signOut();
+$("refreshBtn").onclick=loadOrders;
+
+async function loadOrders(){
+  if(!currentUser||!profile||profile.status!=="approved"||busy)return;
+  busy=true;$("message").textContent="";
+  $("orders").innerHTML='<div class="card">ऑर्डर लोड हो रहे हैं...</div>';
+  try{
+    const snap=await db.collection("orders")
+      .where("assignedToEmail","==",currentUser.email).get();
+    const docs=snap.docs;
+    docs.sort((a,b)=>{
+      const x=a.data().createdAt,y=b.data().createdAt;
+      const xt=x&&typeof x.toMillis==="function"?x.toMillis():0;
+      const yt=y&&typeof y.toMillis==="function"?y.toMillis():0;
+      return yt-xt;
+    });
+    if(!docs.length){
+      $("orders").innerHTML='<div class="card">अभी कोई ऑर्डर असाइन नहीं है। एडमिन से असाइन करवाएँ और Refresh करें।</div>';
+      return;
+    }
+    $("orders").innerHTML=docs.map(renderOrder).join("");
+  }catch(err){
+    $("orders").innerHTML='<div class="card error">ऑर्डर लोड नहीं हुए: '+esc(err.message)+'</div>';
+  }finally{busy=false;}
+}
+
+function renderOrder(doc){
+  const o=doc.data()||{};
+  const status=String(o.status||"Pending");
+  const low=status.toLowerCase();
+  const cancelled=["cancelled","canceled","cancel"].includes(low);
+  const delivered=low==="delivered";
+  const rawItems=Array.isArray(o.items)?o.items:[];
+  const items=rawItems.length
+    ?rawItems.map(i=>esc(i.name||i.productName||"सामान")+" × "+esc(i.quantity??i.qty??1)).join("<br>")
+    :esc(o.items||"—");
+  const loc=o.locationData||o.location||{};
+  const lat=o.latitude??loc.latitude??loc.lat;
+  const lng=o.longitude??loc.longitude??loc.lng;
+  const has=lat!==undefined&&lat!==null&&lng!==undefined&&lng!==null&&
+    lat!==""&&lng!==""&&Number.isFinite(Number(lat))&&Number.isFinite(Number(lng));
+  const map=has?"https://www.google.com/maps?q="+encodeURIComponent(lat+","+lng):"";
+  const created=o.createdAt&&typeof o.createdAt.toDate==="function"
+    ?o.createdAt.toDate().toLocaleString("hi-IN"):"";
+  return `<div class="card">
+    <h3>ऑर्डर: ${esc(o.id||doc.id)}</h3>
+    <p><b>ग्राहक:</b> ${esc(o.customerName||o.name||"—")}</p>
+    <p><b>फोन:</b> ${esc(o.phone||"—")}</p>
+    <p><b>पता:</b> ${esc(o.address||"—")}</p>
+    <p><b>सामान:</b><br>${items}</p>
+    <p><b>रकम:</b> ₹${esc(o.total??0)}</p>
+    <p><b>भुगतान:</b> ${esc(o.paymentMethod||"Cash")}</p>
+    ${created?`<p><b>समय:</b> ${esc(created)}</p>`:""}
+    <p><b>स्थिति:</b> <span class="${cancelled?"error":"good"}">${cancelled?"Cancel":esc(status)}</span></p>
+    ${map?`<p><a href="${map}" target="_blank" rel="noopener noreferrer">📍 ग्राहक की लोकेशन खोलें</a></p>`:""}
+    ${!cancelled&&!delivered?`<button type="button" data-complete-id="${esc(doc.id)}">डिलीवरी पूरी करें</button>`:""}
+  </div>`;
+}
+
+$("orders").addEventListener("click",e=>{
+  const btn=e.target.closest("button[data-complete-id]");
+  if(btn)completeDelivery(btn.dataset.completeId,btn);
+});
+
+async function completeDelivery(id,button){
+  if(!currentUser||!profile||profile.status!=="approved"||button.disabled)return;
+  if(!confirm("क्या यह ऑर्डर ग्राहक को दे दिया गया है?"))return;
+  button.disabled=true;button.textContent="अपडेट हो रहा है...";
+  try{
+    const orderRef=db.collection("orders").doc(id);
+    const noteRef=db.collection("notificationRequests").doc();
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(orderRef);
+      if(!snap.exists)throw Error("ऑर्डर नहीं मिला।");
+      const order=snap.data()||{};
+      const assigned=String(order.assignedToEmail||"").trim().toLowerCase();
+      const myEmail=String(currentUser.email||"").trim().toLowerCase();
+      if(!assigned||assigned!==myEmail)throw Error("यह ऑर्डर आपको असाइन नहीं है।");
+      const status=String(order.status||"").toLowerCase();
+      if(["delivered","cancelled","canceled","cancel"].includes(status))
+        throw Error("ऑर्डर पहले ही डिलीवर या कैंसल हो चुका है।");
+      tx.update(orderRef,{
+        status:"Delivered",
+        deliveredAt:firebase.firestore.FieldValue.serverTimestamp(),
+        deliveredBy:profile.username||profile.displayName||"",
+        deliveredByEmail:currentUser.email,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+      tx.set(noteRef,{
+        type:"delivery_completed",orderId:id,
+        customerName:order.customerName||order.name||"",
+        customerPhone:order.phone||"",
+        deliveryBoyUsername:profile.username||"",
+        deliveryBoyEmail:currentUser.email,
+        status:"pending",
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
+    $("message").textContent="डिलीवरी पूरी हुई। सूचना का रिकॉर्ड Admin के लिए बनाया गया है।";
+    await loadOrders();
+  }catch(err){
+    $("message").textContent="अपडेट नहीं हुआ: "+err.message;
+    button.disabled=false;button.textContent="डिलीवरी पूरी करें";
+  }
+}
+</script>
+</body>
+</html>

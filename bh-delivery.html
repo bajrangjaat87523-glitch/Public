@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1f1b1c">
+<meta name="description" content="BH Delivery Boy App">
+<title>BH Delivery</title>
+<link rel="manifest" href="./bh-delivery-manifest.json">
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:14px;font-family:Arial,sans-serif;background:#f1f6f2;color:#173629}
+header{background:#1f1b1c;color:#fff;padding:18px;border-radius:14px;margin-bottom:14px;text-align:center}
+.logo{width:100px;height:100px;object-fit:contain;background:#fff;border-radius:18px;padding:5px;margin-bottom:10px}
+h1{font-size:23px;margin:0 0 8px}
+.card{background:#fff;padding:16px;border-radius:12px;margin-bottom:14px;box-shadow:0 2px 8px #0001}
+input,button{width:100%;padding:12px;margin-top:10px;border-radius:8px;font-size:16px}
+input{border:1px solid #bbb}
+button{border:0;background:#1f1b1c;color:#fff;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.6;cursor:not-allowed}
+.secondary{background:#455a64}
+.error{color:#b00020;white-space:pre-wrap}
+.good{color:#087a45}
+.small{font-size:13px;color:#555}
+.hidden{display:none}
+a{color:#087a45;font-weight:bold}
+hr{margin:18px 0;border:0;border-top:1px solid #ddd}
+</style>
+</head>
+<body>
+<header>
+<img class="logo" src="./bh-icon-192.png" alt="BH Delivery Logo">
+<h1>BH Delivery</h1>
+<p>डिलीवरी बॉय पैनल</p>
+</header>
+
+<section class="card" id="authBox">
+<h2>रजिस्ट्रेशन / लॉगिन</h2>
+<p class="small">यूज़रनेम और पासवर्ड से लॉगिन करें। अकाउंट एडमिन से मंजूर होने के बाद ही ऑर्डर दिखेंगे।</p>
+<h3>नया अकाउंट</h3>
+<form id="registerForm">
+<input id="regUsername" placeholder="यूज़रनेम (3–24 अक्षर)" minlength="3" maxlength="24" autocomplete="username" required>
+<input id="regDisplayName" placeholder="आपका नाम" maxlength="80" autocomplete="name" required>
+<input id="regPassword" type="password" placeholder="पासवर्ड (कम से कम 6 अक्षर)" minlength="6" autocomplete="new-password" required>
+<button id="registerBtn" type="submit">रजिस्ट्रेशन करें</button>
+</form>
+<hr>
+<h3>पहले से अकाउंट है</h3>
+<form id="loginForm">
+<input id="loginUsername" placeholder="यूज़रनेम" maxlength="24" autocomplete="username" required>
+<input id="loginPassword" type="password" placeholder="पासवर्ड" autocomplete="current-password" required>
+<button id="loginBtn" type="submit">लॉगिन करें</button>
+</form>
+<p id="authMessage" class="error" role="status"></p>
+</section>
+
+<section id="pendingBox" class="card hidden">
+<h2>मंजूरी बाकी है</h2>
+<p id="pendingText">एडमिन की मंजूरी के बाद ऑर्डर दिखेंगे।</p>
+<button id="pendingLogout" class="secondary" type="button">Logout</button>
+</section>
+
+<section id="panel" class="hidden">
+<div class="card">
+<h2>मेरे ऑर्डर</h2>
+<p id="signedIn" class="small"></p>
+<button id="refreshBtn" type="button">ऑर्डर Refresh करें</button>
+<button id="logoutBtn" class="secondary" type="button">Logout</button>
+<p id="message" class="error" role="status"></p>
+</div>
+<div id="orders"></div>
+</section>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig={
+  apiKey:"AIzaSyD9cwaW54d5VRfK6rbuqSExcz27bFHdSm8",
+  authDomain:"vt-dairy-farm-9afc8.firebaseapp.com",
+  projectId:"vt-dairy-farm-9afc8",
+  storageBucket:"vt-dairy-farm-9afc8.firebasestorage.app",
+  messagingSenderId:"86012601125",
+  appId:"1:86012601125:web:6a6d81f5d93aae16a030cc"
+};
+
+if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth(),db=firebase.firestore();
+const $=id=>document.getElementById(id);
+const DOMAIN="@delivery.vtdairyfarm.com";
+
+let currentUser=null,profile=null,busy=false;
+let registering=false,authRun=0,handlingAuth=false;
+
+function esc(v){
+  return String(v??"").replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+function mail(u){return u.trim().toLowerCase()+DOMAIN;}
+function valid(u){return /^[a-z0-9._-]{3,24}$/.test(u);}
+function view(v){
+  $("authBox").classList.toggle("hidden",v!=="auth");
+  $("pendingBox").classList.toggle("hidden",v!=="pending");
+  $("panel").classList.toggle("hidden",v!=="panel");
+}
+function setAuthBusy(value){
+  $("registerBtn").disabled=value;
+  $("loginBtn").disabled=value;
+}
+function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+
+$("registerForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(registering||handlingAuth)return;
+
+  const username=$("regUsername").value.trim().toLowerCase();
+  const displayName=$("regDisplayName").value.trim();
+  const password=$("regPassword").value;
+
+  if(!valid(username)){
+    $("authMessage").textContent="यूज़रनेम 3–24 अक्षर का हो; a-z, 0-9, dot, underscore या hyphen इस्तेमाल करें।";
+    return;
+  }
+  if(displayName.length<2){
+    $("authMessage").textContent="कृपया अपना नाम सही लिखें।";
+    return;
+  }
+
+  registering=true;
+  setAuthBusy(true);
+  $("authMessage").textContent="रजिस्ट्रेशन हो रहा है...";
+
+  try{
+    const credential=await auth.createUserWithEmailAndPassword(mail(username),password);
+    const user=credential.user;
+
+    // Auth listener को profile बनने से पहले account check करने से रोकें।
+    await db.collection("deliveryUsers").doc(user.uid).set({
+      uid:user.uid,
+      username,
+      displayName,
+      email:mail(username),
+      status:"pending",
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    $("authMessage").textContent="रजिस्ट्रेशन हो गया। अब एडमिन की मंजूरी का इंतजार करें।";
+    await handleSignedInUser(user,true);
+  }catch(err){
+    $("authMessage").textContent=
+      err.code==="auth/email-already-in-use"
+        ?"यह यूज़रनेम पहले से मौजूद है। दूसरा यूज़रनेम चुनें।"
+        :"रजिस्ट्रेशन में समस्या: "+err.message;
+    // Auth account बन चुका हो लेकिन profile write fail हुआ हो तो user को स्पष्ट बताएं।
+    if(auth.currentUser){
+      $("authMessage").textContent+=" यदि अकाउंट बन गया है लेकिन प्रोफाइल सेव नहीं हुई, तो Firestore Rules में deliveryUsers create अनुमति जाँचनी होगी।";
+    }
+  }finally{
+    registering=false;
+    setAuthBusy(false);
+  }
+});
+
+$("loginForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const username=$("loginUsername").value.trim().toLowerCase();
+  if(!valid(username)){
+    $("authMessage").textContent="यूज़रनेम सही लिखें।";
+    return;
+  }
+  setAuthBusy(true);
+  $("authMessage").textContent="लॉगिन हो रहा है...";
+  try{
+    await auth.signInWithEmailAndPassword(mail(username),$("loginPassword").value);
+    $("authMessage").textContent="";
+  }catch(err){
+    $("authMessage").textContent="लॉगिन नहीं हुआ। यूज़रनेम और पासवर्ड जाँचें।";
+  }finally{
+    setAuthBusy(false);
+  }
+});
+
+async function handleSignedInUser(user,profileJustCreated=false){
+  const run=++authRun;
+  currentUser=user;
+  profile=null;
+  let snap=null,lastError=null;
+
+  // रजिस्ट्रेशन के बाद profile write के दिखाई देने तक सीमित retry।
+  for(let attempt=0;attempt<(profileJustCreated?6:1);attempt++){
+    try{
+      snap=await db.collection("deliveryUsers").doc(user.uid).get();
+      if(snap.exists)break;
+    }catch(err){
+      lastError=err;
+      break;
+    }
+    if(attempt<5)await sleep(400);
+  }
+
+  if(run!==authRun||!auth.currentUser||auth.currentUser.uid!==user.uid)return;
+  if(lastError)throw lastError;
+
+  if(!snap||!snap.exists){
+    await auth.signOut();
+    view("auth");
+    $("authMessage").textContent="अकाउंट प्रोफाइल नहीं मिली। Firestore Rules में deliveryUsers की अनुमति जाँचें।";
+    return;
+  }
+
+  const data=snap.data()||{};
+  if(data.uid!==user.uid){
+    await auth.signOut();
+    view("auth");
+    $("authMessage").textContent="अकाउंट रिकॉर्ड की जाँच में समस्या है।";
+    return;
+  }
+
+  profile=data;
+  if(profile.status!=="approved"){
+    view("pending");
+    $("pendingText").textContent=profile.status==="rejected"
+      ?"अकाउंट मंजूर नहीं हुआ। एडमिन से संपर्क करें।"
+      :"अकाउंट बन गया है। एडमिन की मंजूरी के बाद ही ऑर्डर दिखेंगे।";
+    return;
+  }
+
+  view("panel");
+  $("signedIn").textContent="लॉगिन: "+(profile.displayName||profile.username||"Delivery Boy");
+  await loadOrders();
+}
+
+auth.onAuthStateChanged(async user=>{
+  if(registering)return;
+  const run=++authRun;
+  currentUser=user;
+  profile=null;
+
+  if(!user){
+    view("auth");
+    $("orders").innerHTML="";
+    $("signedIn").textContent="";
+    return;
+  }
+
+  handlingAuth=true;
+  try{
+    await handleSignedInUser(user,false);
+  }catch(err){
+    if(run!==authRun)return;
+    view("auth");
+    $("authMessage").textContent="अकाउंट जाँच नहीं सका: "+err.message;
+  }finally{
+    handlingAuth=false;
+  }
+});
+
+$("logoutBtn").onclick=$("pendingLogout").onclick=async()=>{
+  try{await auth.signOut();}
+  catch(err){$("message").textContent="Logout नहीं हुआ: "+err.message;}
+};
+$("refreshBtn").onclick=loadOrders;
+
+async function loadOrders(){
+  if(!currentUser||!profile||profile.status!=="approved"||busy)return;
+  busy=true;
+  $("message").textContent="";
+  $("orders").innerHTML='<div class="card">ऑर्डर लोड हो रहे हैं...</div>';
+
+  try{
+    const snap=await db.collection("orders")
+      .where("assignedToEmail","==",currentUser.email).get();
+    const docs=snap.docs;
+
+    docs.sort((a,b)=>{
+      const x=a.data().createdAt,y=b.data().createdAt;
+      const xt=x&&typeof x.toMillis==="function"?x.toMillis():0;
+      const yt=y&&typeof y.toMillis==="function"?y.toMillis():0;
+      return yt-xt;
+    });
+
+    if(!docs.length){
+      $("orders").innerHTML='<div class="card">अभी कोई ऑर्डर असाइन नहीं है। एडमिन से असाइन करवाएँ और Refresh करें।</div>';
+      return;
+    }
+    $("orders").innerHTML=docs.map(renderOrder).join("");
+  }catch(err){
+    $("orders").innerHTML='<div class="card error">ऑर्डर लोड नहीं हुए: '+esc(err.message)+'</div>';
+  }finally{busy=false;}
+}
+
+function renderOrder(doc){
+  const o=doc.data()||{};
+  const status=String(o.status||"Pending");
+  const low=status.toLowerCase();
+  const cancelled=["cancelled","canceled","cancel"].includes(low);
+  const delivered=low==="delivered";
+
+  const items=Array.isArray(o.items)
+    ?o.items.map(item=>esc(item.name||item.productName||"सामान")+" × "+esc(item.quantity??item.qty??1)).join("<br>")
+    :esc(o.items||"—");
+
+  const location=o.locationData||o.location||{};
+  const lat=o.latitude??location.latitude??location.lat;
+  const lng=o.longitude??location.longitude??location.lng;
+  const has=lat!==undefined&&lat!==null&&lng!==undefined&&lng!==null&&
+    lat!==""&&lng!==""&&Number.isFinite(Number(lat))&&Number.isFinite(Number(lng));
+  const map=has?"https://www.google.com/maps?q="+encodeURIComponent(lat+","+lng):"";
+  const created=o.createdAt&&typeof o.createdAt.toDate==="function"
+    ?o.createdAt.toDate().toLocaleString("hi-IN"):"";
+
+  return `<div class="card">
+    <h3>ऑर्डर: ${esc(o.id||doc.id)}</h3>
+    <p><b>ग्राहक:</b> ${esc(o.customerName||o.name||"—")}</p>
+    <p><b>फोन:</b> ${esc(o.phone||"—")}</p>
+    <p><b>पता:</b> ${esc(o.address||"—")}</p>
+    <p><b>सामान:</b><br>${items}</p>
+    <p><b>रकम:</b> ₹${esc(o.total??0)}</p>
+    <p><b>भुगतान:</b> ${esc(o.paymentMethod||"Cash")}</p>
+    ${created?`<p><b>समय:</b> ${esc(created)}</p>`:""}
+    <p><b>स्थिति:</b> <span class="${cancelled?"error":"good"}">${cancelled?"Cancel":esc(status)}</span></p>
+    ${map?`<p><a href="${map}" target="_blank" rel="noopener noreferrer">📍 ग्राहक की लोकेशन खोलें</a></p>`:""}
+    ${!cancelled&&!delivered?`<button type="button" data-complete-id="${esc(doc.id)}">डिलीवरी पूरी करें</button>`:""}
+  </div>`;
+}
+
+$("orders").addEventListener("click",event=>{
+  const button=event.target.closest("button[data-complete-id]");
+  if(button)completeDelivery(button.dataset.completeId,button);
+});
+
+async function completeDelivery(id,button){
+  if(!currentUser||!profile||profile.status!=="approved"||button.disabled)return;
+  if(!confirm("क्या यह ऑर्डर ग्राहक को दे दिया गया है?"))return;
+
+  button.disabled=true;
+  button.textContent="अपडेट हो रहा है...";
+
+  try{
+    const orderRef=db.collection("orders").doc(id);
+    const noteRef=db.collection("notificationRequests").doc();
+
+    await db.runTransaction(async tx=>{
+      const snap=await tx.get(orderRef);
+      if(!snap.exists)throw Error("ऑर्डर नहीं मिला।");
+
+      const order=snap.data()||{};
+      const assigned=String(order.assignedToEmail||"").trim().toLowerCase();
+      const myEmail=String(currentUser.email||"").trim().toLowerCase();
+
+      if(!assigned||assigned!==myEmail)throw Error("यह ऑर्डर आपको असाइन नहीं है।");
+
+      const status=String(order.status||"").toLowerCase();
+      if(["delivered","cancelled","canceled","cancel"].includes(status)){
+        throw Error("ऑर्डर पहले ही डिलीवर या कैंसल हो चुका है।");
+      }
+
+      tx.update(orderRef,{
+        status:"Delivered",
+        deliveredAt:firebase.firestore.FieldValue.serverTimestamp(),
+        deliveredBy:profile.username||profile.displayName||"",
+        deliveredByEmail:currentUser.email,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      tx.set(noteRef,{
+        type:"delivery_completed",
+        orderId:id,
+        customerName:order.customerName||order.name||"",
+        customerPhone:order.phone||"",
+        deliveryBoyUsername:profile.username||"",
+        deliveryBoyEmail:currentUser.email,
+        status:"pending",
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
+
+    $("message").textContent="डिलीवरी पूरी हुई। Admin के लिए सूचना का रिकॉर्ड सेव हुआ है।";
+    await loadOrders();
+  }catch(err){
+    $("message").textContent="अपडेट नहीं हुआ: "+err.message;
+    button.disabled=false;
+    button.textContent="डिलीवरी पूरी करें";
+  }
+}
+
+/* BH Delivery का अलग Service Worker अभी register नहीं किया गया है।
+   Customer App के root-scope Service Worker से टकराव से बचने के लिए
+   पहले इसे बिना नए Service Worker के चलाएँ। */
+if("serviceWorker" in navigator){
+  window.addEventListener("load",async()=>{
+    try{
+      const registrations=await navigator.serviceWorker.getRegistrations();
+      for(const registration of registrations){
+        const workers=[registration.active,registration.waiting,registration.installing].filter(Boolean);
+        if(workers.some(worker=>new URL(worker.scriptURL).pathname.endsWith("/bh-delivery-sw.js"))){
+          await registration.unregister();
+        }
+      }
+    }catch(err){
+      console.warn("BH Service Worker cleanup:",err);
+    }
+  });
+}
+</script>
+</body>
+</html>
